@@ -90,14 +90,14 @@ export default async function ListingDetailPage({ params }: Props) {
           <div>
             <div className="flex flex-wrap items-start gap-3">
               <h1 className="text-3xl font-bold text-gray-900">{pet.name}</h1>
-              <Badge variant="info">{pet.adoptionOrSaleType.replace('_', ' ')}</Badge>
+              <Badge variant="info">{pet.adoptionOrSaleType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}</Badge>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
               {[
                 { label: 'Breed', value: pet.breedPrimary },
                 { label: 'Age', value: pet.ageValue ? `${pet.ageValue} ${pet.ageUnit ?? 'yrs'}` : 'Unknown' },
-                { label: 'Sex', value: pet.sex.charAt(0).toUpperCase() + pet.sex.slice(1) },
+                { label: 'Sex', value: pet.sex.charAt(0).toUpperCase() + pet.sex.slice(1).toLowerCase() },
                 { label: 'Size', value: pet.sizeCategory?.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()) ?? 'Not specified' },
               ].map((item) => (
                 <div key={item.label} className="rounded-lg bg-gray-50 p-3">

@@ -1,6 +1,6 @@
-import type { AIProvider, AIProviderName } from '../types';
-import { AnthropicProvider } from './anthropic';
-import { OpenAIProvider } from './openai';
+import type { AIProvider, AIProviderName } from '../types.ts';
+import { AnthropicProvider } from './anthropic.ts';
+import { OpenAIProvider } from './openai.ts';
 
 export function createAIProvider(
   name: AIProviderName,

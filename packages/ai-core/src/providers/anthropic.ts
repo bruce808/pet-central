@@ -3,7 +3,7 @@ import type {
   AIProvider,
   CompletionRequest,
   CompletionResponse,
-} from '../types';
+} from '../types.ts';
 
 export class AnthropicProvider implements AIProvider {
   readonly name = 'anthropic' as const;

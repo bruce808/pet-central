@@ -76,6 +76,21 @@ export async function seedPets(
         },
       });
 
+      const extras = breed.extraImages ?? [];
+      for (let ei = 0; ei < extras.length; ei++) {
+        const extraUrl = extras[ei];
+        if (!extraUrl) continue;
+        await prisma.petMedia.create({
+          data: {
+            petId: pet.id,
+            mediaType: 'image/jpeg',
+            storageKey: extraUrl,
+            sortOrder: ei + 1,
+            isPrimary: false,
+          },
+        });
+      }
+
       const attrs: { key: string; value: string }[] = [
         { key: 'coat_length', value: pick(['short', 'medium', 'long']) },
         { key: 'house_trained', value: Math.random() > 0.2 ? 'yes' : 'no' },

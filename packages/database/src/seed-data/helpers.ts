@@ -4,6 +4,7 @@ export interface BreedInfo {
   colors: string[];
   temperaments: string[][];
   imageUrl: string;
+  extraImages: string[];
   ageRange: [number, number];
   priceRange: [number, number];
 }

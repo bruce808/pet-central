@@ -17,6 +17,41 @@ export class ListingsService {
     @InjectQueue('search-index') private readonly searchIndexQueue: Queue,
   ) {}
 
+  private mapMedia(media: { id: string; mediaType: string; storageKey: string; sortOrder: number; isPrimary: boolean }) {
+    return {
+      id: media.id,
+      mediaType: media.mediaType,
+      url: media.storageKey,
+      sortOrder: media.sortOrder,
+      isPrimary: media.isPrimary,
+    };
+  }
+
+  private mapPetResponse(pet: any) {
+    return {
+      ...pet,
+      temperament: pet.temperamentJson ?? [],
+      health: pet.healthJson ?? {},
+      attributes: Object.fromEntries(
+        (pet.attributes ?? []).map((a: any) => [a.attributeKey, a.attributeValue]),
+      ),
+      media: (pet.media ?? []).map((m: any) => this.mapMedia(m)),
+    };
+  }
+
+  private mapListingResponse(listing: any) {
+    const pet = listing.pet;
+    const org = pet?.organization;
+    return {
+      ...listing,
+      pet: this.mapPetResponse(pet),
+      organization: org
+        ? { id: org.id, publicName: org.publicName, organizationType: org.organizationType }
+        : undefined,
+      media: (pet?.media ?? []).map((m: any) => this.mapMedia(m)),
+    };
+  }
+
   async createPet(userId: string, dto: Record<string, any>) {
     await this.verifyOrgMembership(dto.organizationId, userId);
 
@@ -197,6 +232,7 @@ export class ListingsService {
         pet: {
           include: {
             media: { orderBy: { sortOrder: 'asc' } },
+            attributes: true,
             organization: {
               include: {
                 badges: {
@@ -225,7 +261,7 @@ export class ListingsService {
     });
 
     return {
-      ...listing,
+      ...this.mapListingResponse(listing),
       reviewStats: {
         averageRating: reviewStats._avg.ratingOverall,
         reviewCount: reviewStats._count.id,
@@ -287,7 +323,7 @@ export class ListingsService {
     ]);
 
     return {
-      data: listings,
+      data: listings.map((l) => this.mapListingResponse(l)),
       meta: {
         total,
         page,

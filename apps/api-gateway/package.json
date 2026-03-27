@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--experimental-transform-types' nest start --watch",
+    "dev": "env $(cat ../../.env | grep -v '^#' | grep -v '^$' | xargs) ts-node --swc -r reflect-metadata src/main.ts",
     "build": "nest build",
     "start": "node dist/main",
     "lint": "eslint src/",

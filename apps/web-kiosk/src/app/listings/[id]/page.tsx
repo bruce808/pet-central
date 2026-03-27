@@ -31,7 +31,10 @@ export default function KioskListingDetailPage() {
 
   const listing = (query.data ?? {}) as unknown as Record<string, unknown>;
   const pet = (listing.pet ?? listing) as unknown as Record<string, unknown>;
-  const orgName = String(listing.organizationName ?? 'Organization');
+  const org = listing.organization as Record<string, unknown> | undefined;
+  const orgName = String(org?.publicName ?? listing.organizationName ?? 'Organization');
+  const media = (listing.media ?? pet.media ?? []) as Array<Record<string, unknown>>;
+  const primaryImage = media.length > 0 && media[0] ? String(media[0].url) : null;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 animate-fade-in-up">
@@ -46,9 +49,9 @@ export default function KioskListingDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="overflow-hidden rounded-card shadow-card">
-          {pet.photoUrl ? (
+          {primaryImage ? (
             <img
-              src={String(pet.photoUrl)}
+              src={primaryImage}
               alt={String(pet.name ?? 'Pet')}
               className="h-full min-h-[400px] w-full object-cover"
             />
@@ -65,14 +68,14 @@ export default function KioskListingDetailPage() {
               {String(pet.name ?? 'Unknown')}
             </h1>
             <p className="mt-2 text-xl leading-relaxed text-gray-500">
-              {String(pet.breed ?? '')}
+              {String(pet.breedPrimary ?? pet.breed ?? '')}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            {pet.age ? (
+            {pet.ageValue ? (
               <span className="rounded-pill bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700">
-                {String(pet.age)}
+                {String(pet.ageValue)} {String(pet.ageUnit ?? 'yrs')}
               </span>
             ) : null}
             {pet.sex ? (
@@ -80,9 +83,9 @@ export default function KioskListingDetailPage() {
                 {String(pet.sex)}
               </span>
             ) : null}
-            {pet.size ? (
+            {pet.sizeCategory ? (
               <span className="rounded-pill bg-gray-100 px-4 py-1.5 text-sm font-medium text-gray-700">
-                {String(pet.size)}
+                {String(pet.sizeCategory).replace('_', ' ')}
               </span>
             ) : null}
           </div>

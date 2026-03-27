@@ -1,4 +1,4 @@
-import type { PromptTemplate } from '../types';
+import type { PromptTemplate } from '../types.ts';
 
 export class PromptRegistry {
   private templates = new Map<string, PromptTemplate[]>();

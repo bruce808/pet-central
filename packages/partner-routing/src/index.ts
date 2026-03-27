@@ -1,3 +1,3 @@
-export * from './origin';
-export * from './attribution';
-export * from './kiosk';
+export * from './origin.ts';
+export * from './attribution.ts';
+export * from './kiosk.ts';

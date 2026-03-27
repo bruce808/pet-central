@@ -1,4 +1,4 @@
-import { DEFAULT_REGISTRY } from './registry';
+import { DEFAULT_REGISTRY } from './registry.ts';
 
 DEFAULT_REGISTRY.register({
   id: 'pet-guidance-chat',

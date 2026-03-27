@@ -1,4 +1,4 @@
-import type { RiskAssessment } from './risk';
+import type { RiskAssessment } from './risk.ts';
 
 export type EnforcementAction =
   | 'warn'

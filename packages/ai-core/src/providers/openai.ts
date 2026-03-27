@@ -6,7 +6,7 @@ import type {
   EmbeddingProvider,
   EmbeddingRequest,
   EmbeddingResponse,
-} from '../types';
+} from '../types.ts';
 
 export class OpenAIProvider implements AIProvider, EmbeddingProvider {
   readonly name = 'openai' as const;

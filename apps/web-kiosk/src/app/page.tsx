@@ -9,6 +9,7 @@ const petTypes = [
     gradient: 'bg-gradient-to-br from-amber-100 to-amber-50',
     hoverGradient: 'hover:from-amber-200 hover:to-amber-100',
     iconColor: 'text-amber-600',
+    Icon: DogIcon,
   },
   {
     label: 'Find a Cat',
@@ -16,6 +17,7 @@ const petTypes = [
     gradient: 'bg-gradient-to-br from-blue-100 to-blue-50',
     hoverGradient: 'hover:from-blue-200 hover:to-blue-100',
     iconColor: 'text-blue-600',
+    Icon: CatIcon,
   },
   {
     label: 'Find a Bird',
@@ -23,13 +25,13 @@ const petTypes = [
     gradient: 'bg-gradient-to-br from-green-100 to-green-50',
     hoverGradient: 'hover:from-green-200 hover:to-green-100',
     iconColor: 'text-green-600',
+    Icon: BirdIcon,
   },
 ];
 
 export default function KioskHomePage() {
   return (
     <div className="relative flex min-h-[80vh] flex-col items-center justify-center overflow-hidden">
-      {/* Decorative blurred orbs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/4 top-20 h-72 w-72 rounded-full bg-brand-200/40 blur-3xl" />
         <div className="absolute right-1/4 top-40 h-64 w-64 rounded-full bg-emerald-200/30 blur-3xl" />
@@ -54,7 +56,7 @@ export default function KioskHomePage() {
               className={`relative flex min-h-[220px] flex-col items-center justify-center overflow-hidden rounded-card ${pet.gradient} ${pet.hoverGradient} shadow-card transition-all duration-card hover:-translate-y-1 hover:shadow-card-hover`}
             >
               <div className={`mb-4 ${pet.iconColor} transition-transform duration-500 group-hover:scale-105`}>
-                <PawIcon className="h-20 w-20" />
+                <pet.Icon className="h-20 w-20" />
               </div>
               <span className="text-2xl font-bold tracking-tight text-gray-900">
                 {pet.label}
@@ -84,10 +86,26 @@ export default function KioskHomePage() {
   );
 }
 
-function PawIcon({ className }: { className?: string }) {
+function DogIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M8.35 3c1.1 0 2 1.2 2 2.7s-.9 2.7-2 2.7-2-1.2-2-2.7.9-2.7 2-2.7zm7.3 0c1.1 0 2 1.2 2 2.7s-.9 2.7-2 2.7-2-1.2-2-2.7.9-2.7 2-2.7zm-10.6 5.7c1.1 0 2 1 2 2.3s-.9 2.3-2 2.3-2-1-2-2.3.9-2.3 2-2.3zm13.9 0c1.1 0 2 1 2 2.3s-.9 2.3-2 2.3-2-1-2-2.3.9-2.3 2-2.3zM12 12.5c2.3 0 4.2 1.5 4.2 3.4 0 2.3-1.5 4.6-4.2 4.6s-4.2-2.3-4.2-4.6c0-1.9 1.9-3.4 4.2-3.4z" />
+    <svg className={className} viewBox="0 0 64 64" fill="currentColor">
+      <path d="M52 14c-2-4-6-6-8-6-1 0-2 .5-2.5 1.5L38 16h-12l-3.5-6.5C22 8.5 21 8 20 8c-2 0-6 2-8 6-2 3.5-2 7-.5 9l3.5 5v8c0 6 4 12 8 15v5c0 2.2 1.8 4 4 4h10c2.2 0 4-1.8 4-4v-5c4-3 8-9 8-15v-8l3.5-5c1.5-2 1.5-5.5-.5-9zM24 32a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm16 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm-4 8h-8a1 1 0 0 1 0-2h8a1 1 0 0 1 0 2z" />
+    </svg>
+  );
+}
+
+function CatIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 64 64" fill="currentColor">
+      <path d="M48 8l-6 14h-2c-1-4-5-8-8-8s-7 4-8 8h-2L16 8c-1-2-4-1-4 1v12c0 2 .5 4 1.5 5.5C11 29 10 32 10 36c0 10 8 18 22 20 14-2 22-10 22-20 0-4-1-7-3.5-9.5C51.5 25 52 23 52 21V9c0-2-3-3-4-1zM25 34a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm14 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm-4 6c-1.5 1.5-5.5 1.5-7 0a1 1 0 0 1 1.5-1.5c.8.8 3.2.8 4 0a1 1 0 0 1 1.5 1.5z" />
+    </svg>
+  );
+}
+
+function BirdIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 64 64" fill="currentColor">
+      <path d="M50 18c-2-6-8-10-14-10-4 0-8 2-10.5 5L12 20c-2 .5-3 2.5-2 4l6 8-6 4c-1.5 1-1.5 3.5.5 4l16 6c2 5 7 10 14 10 10 0 16-8 16-18 0-8-3-15-7-20zm-6 12a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
     </svg>
   );
 }

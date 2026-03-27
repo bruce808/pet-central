@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Input, Textarea, Select, Button, LoadingSpinner } from '@pet-central/ui';
+import { Input, Textarea, Select, Button, LoadingSpinner } from '@pet-central/ui';
 import { organization } from '@/lib/api';
 
 export default function OrganizationPage() {
@@ -71,13 +71,13 @@ export default function OrganizationPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Card padding="lg">
+      <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
         <h2 className="mb-6 text-lg font-semibold text-gray-900">
           Organization Profile
         </h2>
 
         <div className="mb-6 flex items-center gap-4">
-          <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-brand-100 text-2xl font-bold text-brand-700">
+          <div className="flex h-20 w-20 items-center justify-center rounded-[16px] bg-gradient-to-br from-brand-100 to-brand-50 text-2xl font-bold text-brand-700">
             {form.publicName?.[0] ?? 'O'}
           </div>
           <div>
@@ -105,7 +105,7 @@ export default function OrganizationPage() {
             <label className="mb-1.5 block text-sm font-medium text-gray-700">
               Organization Type
             </label>
-            <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+            <p className="rounded-[10px] border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-500">
               {form.orgType || '—'}
             </p>
           </div>
@@ -137,9 +137,9 @@ export default function OrganizationPage() {
             placeholder="Tell potential adopters about your organization…"
           />
         </div>
-      </Card>
+      </div>
 
-      <Card padding="lg">
+      <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
         <h2 className="mb-6 text-lg font-semibold text-gray-900">Location</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -177,16 +177,17 @@ export default function OrganizationPage() {
             placeholder="e.g. 50"
           />
         </div>
-      </Card>
+      </div>
 
       <div className="flex justify-end">
-        <Button
-          variant="primary"
+        <button
+          type="button"
           onClick={() => updateMutation.mutate()}
-          loading={updateMutation.isPending}
+          disabled={updateMutation.isPending}
+          className="rounded-[10px] bg-gradient-to-r from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-brand-700 hover:to-brand-800 disabled:opacity-60"
         >
-          Save Changes
-        </Button>
+          {updateMutation.isPending ? 'Saving…' : 'Save Changes'}
+        </button>
       </div>
     </div>
   );

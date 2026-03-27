@@ -5,7 +5,6 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
   Button,
-  Card,
   Input,
   Select,
   Textarea,
@@ -184,15 +183,21 @@ export default function NewListingPage() {
             <button
               type="button"
               onClick={() => setStep(i)}
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-all duration-200 ${
                 i === step
-                  ? 'bg-brand-600 text-white'
+                  ? 'bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-sm'
                   : i < step
                     ? 'bg-brand-100 text-brand-700'
                     : 'bg-gray-100 text-gray-400'
               }`}
             >
-              {i + 1}
+              {i < step ? (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              ) : (
+                i + 1
+              )}
             </button>
             <span
               className={`hidden text-xs font-medium sm:block ${
@@ -203,7 +208,7 @@ export default function NewListingPage() {
             </span>
             {i < STEPS.length - 1 && (
               <div
-                className={`h-0.5 flex-1 ${
+                className={`h-0.5 flex-1 rounded-full transition-colors ${
                   i < step ? 'bg-brand-300' : 'bg-gray-200'
                 }`}
               />
@@ -214,7 +219,7 @@ export default function NewListingPage() {
 
       {/* Step 1: Pet Info */}
       {step === 0 && (
-        <Card padding="lg">
+        <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
           <h2 className="mb-6 text-lg font-semibold text-gray-900">
             Pet Information
           </h2>
@@ -313,10 +318,10 @@ export default function NewListingPage() {
                   key={tag}
                   type="button"
                   onClick={() => toggleTemperament(tag)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
                     pet.temperament.includes(tag)
                       ? 'border-brand-300 bg-brand-50 text-brand-700'
-                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   {tag}
@@ -324,19 +329,19 @@ export default function NewListingPage() {
               ))}
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Step 2: Photos & Media */}
       {step === 1 && (
-        <Card padding="lg">
+        <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
           <h2 className="mb-6 text-lg font-semibold text-gray-900">
             Photos & Media
           </h2>
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleMediaDrop}
-            className="flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 transition-colors hover:border-brand-400"
+            className="flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-[16px] border-2 border-dashed border-gray-300 bg-gray-50 p-8 transition-all duration-200 hover:border-brand-300 hover:bg-brand-50/30"
             onClick={() => document.getElementById('media-upload')?.click()}
           >
             <svg className="mb-3 h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -365,10 +370,10 @@ export default function NewListingPage() {
               {mediaFiles.map((media, i) => (
                 <div
                   key={i}
-                  className={`group relative overflow-hidden rounded-lg border-2 ${
+                  className={`group relative overflow-hidden rounded-[10px] border-2 transition-all ${
                     media.primary
-                      ? 'border-brand-500'
-                      : 'border-transparent'
+                      ? 'border-brand-500 shadow-sm'
+                      : 'border-transparent hover:border-gray-200'
                   }`}
                 >
                   <img
@@ -380,7 +385,7 @@ export default function NewListingPage() {
                     <Badge
                       variant="success"
                       size="sm"
-                      className="absolute left-1 top-1"
+                      className="absolute left-1.5 top-1.5"
                     >
                       Primary
                     </Badge>
@@ -390,7 +395,7 @@ export default function NewListingPage() {
                       <button
                         type="button"
                         onClick={() => setPrimaryMedia(i)}
-                        className="rounded bg-white px-2 py-1 text-xs font-medium text-gray-800"
+                        className="rounded-[8px] bg-white px-2.5 py-1 text-xs font-medium text-gray-800 shadow-sm"
                       >
                         Set Primary
                       </button>
@@ -398,7 +403,7 @@ export default function NewListingPage() {
                     <button
                       type="button"
                       onClick={() => removeMedia(i)}
-                      className="rounded bg-red-500 px-2 py-1 text-xs font-medium text-white"
+                      className="rounded-[8px] bg-red-500 px-2.5 py-1 text-xs font-medium text-white shadow-sm"
                     >
                       Remove
                     </button>
@@ -407,12 +412,12 @@ export default function NewListingPage() {
               ))}
             </div>
           )}
-        </Card>
+        </div>
       )}
 
       {/* Step 3: Listing Details */}
       {step === 2 && (
-        <Card padding="lg">
+        <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
           <h2 className="mb-6 text-lg font-semibold text-gray-900">
             Listing Details
           </h2>
@@ -456,12 +461,12 @@ export default function NewListingPage() {
               placeholder="City, State"
             />
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Step 4: Review & Submit */}
       {step === 3 && (
-        <Card padding="lg">
+        <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
           <h2 className="mb-6 text-lg font-semibold text-gray-900">
             Review & Submit
           </h2>
@@ -484,9 +489,9 @@ export default function NewListingPage() {
                   <span className="text-xs text-gray-500">Temperament</span>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {pet.temperament.map((t) => (
-                      <Badge key={t} variant="neutral" size="sm">
+                      <span key={t} className="inline-flex rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
                         {t}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -507,7 +512,7 @@ export default function NewListingPage() {
               <ReviewField label="Location" value={listing.location} />
             </ReviewSection>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Navigation */}
@@ -526,17 +531,22 @@ export default function NewListingPage() {
             </Button>
           )}
           {step < STEPS.length - 1 ? (
-            <Button variant="primary" onClick={() => setStep(step + 1)}>
-              Continue
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              onClick={() => createMutation.mutate()}
-              loading={createMutation.isPending}
+            <button
+              type="button"
+              onClick={() => setStep(step + 1)}
+              className="rounded-[10px] bg-gradient-to-r from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-brand-700 hover:to-brand-800"
             >
-              Submit Listing
-            </Button>
+              Continue
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => createMutation.mutate()}
+              disabled={createMutation.isPending}
+              className="rounded-[10px] bg-gradient-to-r from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-brand-700 hover:to-brand-800 disabled:opacity-60"
+            >
+              {createMutation.isPending ? 'Submitting…' : 'Submit Listing'}
+            </button>
           )}
         </div>
       </div>

@@ -96,7 +96,7 @@ export default function ModerationPage() {
           type="checkbox"
           checked={selected.has(String(row.id))}
           onChange={() => toggleSelect(String(row.id))}
-          className="rounded border-gray-300"
+          className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
         />
       ),
     },
@@ -113,9 +113,9 @@ export default function ModerationPage() {
       key: 'type',
       header: 'Type',
       render: (row) => (
-        <Badge variant="info" size="sm">
+        <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
           {String(row.contentType ?? row.type ?? '').replace(/_/g, ' ')}
-        </Badge>
+        </span>
       ),
     },
     {
@@ -152,7 +152,7 @@ export default function ModerationPage() {
       key: 'actions',
       header: 'Actions',
       render: (row) => (
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           <Button
             size="sm"
             variant="primary"
@@ -190,12 +190,12 @@ export default function ModerationPage() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Moderation Queue</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Moderation Queue</h2>
         {selected.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">{selected.size} selected</span>
+          <div className="flex items-center gap-3 rounded-[10px] bg-brand-50 px-4 py-2">
+            <span className="text-sm font-medium text-brand-700">{selected.size} selected</span>
             <Button
               size="sm"
               variant="primary"
@@ -226,8 +226,8 @@ export default function ModerationPage() {
         )}
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 border-b border-gray-200">
+      {/* Pill tabs */}
+      <div className="flex gap-2">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -235,10 +235,10 @@ export default function ModerationPage() {
               setTab(t.key);
               setPage(1);
             }}
-            className={`border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               tab === t.key
-                ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ? 'bg-brand-600 text-white shadow-sm'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
             {t.label}
@@ -246,31 +246,33 @@ export default function ModerationPage() {
         ))}
       </div>
 
-      <div className="mb-2">
+      <div className="flex items-center rounded-[10px] bg-white px-4 py-2 border border-gray-100 shadow-sm">
         <label className="flex items-center gap-2 text-sm text-gray-600">
           <input
             type="checkbox"
             checked={selected.size === items.length && items.length > 0}
             onChange={toggleAll}
-            className="rounded border-gray-300"
+            className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
           />
           Select all on page
         </label>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={items}
-        loading={query.isLoading}
-        emptyMessage="Queue is empty — all caught up!"
-        onRowClick={(row) => setReviewItem(row)}
-      />
+      <div className="overflow-hidden rounded-[16px] border border-gray-100 bg-white shadow-card">
+        <DataTable
+          columns={columns}
+          data={items}
+          loading={query.isLoading}
+          emptyMessage="Queue is empty — all caught up!"
+          onRowClick={(row) => setReviewItem(row)}
+        />
+      </div>
 
       {totalPages > 1 && (
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       )}
 
-      {/* Reject Modal */}
+      {/* Review Modal */}
       <Modal
         isOpen={!!reviewItem}
         onClose={() => {
@@ -281,12 +283,12 @@ export default function ModerationPage() {
         size="lg"
       >
         {reviewItem && (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-gray-50 p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <div className="space-y-5">
+            <div className="rounded-[10px] bg-gray-50 p-5">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
                 Content
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm leading-relaxed text-gray-700">
                 {String(
                   reviewItem.content ??
                     reviewItem.title ??
@@ -296,21 +298,21 @@ export default function ModerationPage() {
               </p>
             </div>
             <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-gray-500">Type</p>
-                <p className="font-medium">
+              <div className="rounded-[10px] bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Type</p>
+                <p className="mt-1 font-medium text-gray-800">
                   {String(reviewItem.contentType ?? reviewItem.type ?? '—')}
                 </p>
               </div>
-              <div>
-                <p className="text-gray-500">Author</p>
-                <p className="font-mono text-xs">
+              <div className="rounded-[10px] bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Author</p>
+                <p className="mt-1 font-mono text-xs text-gray-800">
                   {String(reviewItem.authorId ?? reviewItem.userId ?? '—')}
                 </p>
               </div>
-              <div>
-                <p className="text-gray-500">Risk Score</p>
-                <p className="font-medium">{String(reviewItem.riskScore ?? '—')}</p>
+              <div className="rounded-[10px] bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Risk Score</p>
+                <p className="mt-1 font-medium text-gray-800">{String(reviewItem.riskScore ?? '—')}</p>
               </div>
             </div>
             <Textarea

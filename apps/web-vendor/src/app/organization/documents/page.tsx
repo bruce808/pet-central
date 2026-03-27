@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Card,
   Button,
   Select,
   StatusBadge,
@@ -38,12 +37,13 @@ export default function DocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <Card padding="lg">
+      {/* Upload Zone */}
+      <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
         <h2 className="mb-4 text-lg font-semibold text-gray-900">
           Upload Document
         </h2>
-        <div className="flex items-end gap-4">
-          <div className="w-60">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div className="w-full sm:w-60">
             <Select
               label="Document Type"
               options={[
@@ -63,7 +63,7 @@ export default function DocumentsPage() {
               File
             </label>
             <div
-              className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-300 px-4 py-2 text-sm transition-colors hover:border-brand-400"
+              className="flex cursor-pointer items-center gap-3 rounded-[16px] border-2 border-dashed border-gray-300 px-4 py-3 text-sm transition-all duration-200 hover:border-brand-300 hover:bg-brand-50/30"
               onClick={() => document.getElementById('doc-upload')?.click()}
             >
               <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -90,10 +90,11 @@ export default function DocumentsPage() {
             Upload
           </Button>
         </div>
-      </Card>
+      </div>
 
-      <Card padding="none">
-        <div className="border-b border-gray-100 px-5 py-4">
+      {/* Existing Documents */}
+      <div className="rounded-[16px] border border-gray-100 bg-white shadow-card overflow-hidden">
+        <div className="border-b border-gray-100 px-6 py-4">
           <h2 className="font-semibold text-gray-900">Existing Documents</h2>
         </div>
 
@@ -111,19 +112,26 @@ export default function DocumentsPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs font-medium uppercase tracking-wider text-gray-500">
-                  <th className="px-5 py-3">Type</th>
-                  <th className="px-3 py-3">Status</th>
-                  <th className="px-3 py-3">Uploaded</th>
-                  <th className="px-5 py-3" />
+                  <th className="px-6 py-3.5">Type</th>
+                  <th className="px-3 py-3.5">Status</th>
+                  <th className="px-3 py-3.5">Uploaded</th>
+                  <th className="px-6 py-3.5" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-3 font-medium text-gray-900">
-                      {doc.type}
+                  <tr key={doc.id} className="transition-colors hover:bg-gray-50/50">
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gray-100">
+                          <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                          </svg>
+                        </div>
+                        <span className="font-medium text-gray-900">{doc.type}</span>
+                      </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3.5">
                       <StatusBadge
                         status={doc.status}
                         statusMap={{
@@ -133,10 +141,10 @@ export default function DocumentsPage() {
                         }}
                       />
                     </td>
-                    <td className="px-3 py-3 text-gray-500">
+                    <td className="px-3 py-3.5 text-gray-500">
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="px-6 py-3.5 text-right">
                       <Button variant="ghost" size="sm">
                         View
                       </Button>
@@ -147,7 +155,7 @@ export default function DocumentsPage() {
             </table>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

@@ -57,9 +57,9 @@ export default function AICorrespondencePage() {
       key: 'runType',
       header: 'Run Type',
       render: (row) => (
-        <Badge variant="info" size="sm">
+        <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
           {String(row.runType ?? '').replace(/_/g, ' ')}
-        </Badge>
+        </span>
       ),
     },
     {
@@ -125,10 +125,10 @@ export default function AICorrespondencePage() {
   ];
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-900">AI Correspondence</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900">AI Correspondence</h2>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-[16px] border border-gray-100 bg-white p-4 shadow-card">
         <div className="w-44">
           <Select
             placeholder="Status"
@@ -159,25 +159,27 @@ export default function AICorrespondencePage() {
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={items}
-        loading={query.isLoading}
-        emptyMessage="No correspondence runs found"
-        onRowClick={(row) =>
-          setExpandedId(expandedId === String(row.id) ? null : String(row.id))
-        }
-      />
+      <div className="overflow-hidden rounded-[16px] border border-gray-100 bg-white shadow-card">
+        <DataTable
+          columns={columns}
+          data={items}
+          loading={query.isLoading}
+          emptyMessage="No correspondence runs found"
+          onRowClick={(row) =>
+            setExpandedId(expandedId === String(row.id) ? null : String(row.id))
+          }
+        />
+      </div>
 
       {expandedId && (
-        <Card padding="md">
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card animate-fade-in">
+          <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400">
             Run Details
           </h4>
           <div className="grid gap-4 lg:grid-cols-2">
             <div>
-              <p className="mb-1 text-xs font-semibold text-gray-500">Input</p>
-              <pre className="max-h-64 overflow-auto rounded bg-gray-50 p-3 text-xs text-gray-700">
+              <p className="mb-2 text-xs font-semibold text-gray-500">Input</p>
+              <pre className="max-h-64 overflow-auto rounded-[10px] bg-gray-50 p-4 text-xs text-gray-700">
                 {JSON.stringify(
                   (items.find((i) => String(i.id) === expandedId) as Record<string, unknown>)?.input ?? {},
                   null,
@@ -186,8 +188,8 @@ export default function AICorrespondencePage() {
               </pre>
             </div>
             <div>
-              <p className="mb-1 text-xs font-semibold text-gray-500">Output</p>
-              <pre className="max-h-64 overflow-auto rounded bg-gray-50 p-3 text-xs text-gray-700">
+              <p className="mb-2 text-xs font-semibold text-gray-500">Output</p>
+              <pre className="max-h-64 overflow-auto rounded-[10px] bg-gray-50 p-4 text-xs text-gray-700">
                 {JSON.stringify(
                   (items.find((i) => String(i.id) === expandedId) as Record<string, unknown>)?.output ?? {},
                   null,
@@ -196,7 +198,7 @@ export default function AICorrespondencePage() {
               </pre>
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {totalPages > 1 && (

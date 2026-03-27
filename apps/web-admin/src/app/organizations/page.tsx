@@ -47,9 +47,9 @@ export default function OrganizationsPage() {
       key: 'type',
       header: 'Type',
       render: (row) => (
-        <Badge variant="info" size="sm">
+        <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
           {String(row.type ?? '').replace(/_/g, ' ')}
-        </Badge>
+        </span>
       ),
     },
     {
@@ -102,18 +102,22 @@ export default function OrganizationsPage() {
   const totalPages = query.data?.totalPages ?? 1;
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-900">Organizations</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900">Organizations</h2>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
-        <div className="w-64">
-          <Input
+      <div className="flex flex-wrap items-center gap-3 rounded-[16px] border border-gray-100 bg-white p-4 shadow-card">
+        <div className="relative w-64">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <input
             placeholder="Search organizations…"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
+            className="w-full rounded-[10px] border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div className="w-40">
@@ -146,13 +150,15 @@ export default function OrganizationsPage() {
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={items}
-        loading={query.isLoading}
-        emptyMessage="No organizations found"
-        onRowClick={(row) => router.push(`/organizations/${row.id}`)}
-      />
+      <div className="overflow-hidden rounded-[16px] border border-gray-100 bg-white shadow-card">
+        <DataTable
+          columns={columns}
+          data={items}
+          loading={query.isLoading}
+          emptyMessage="No organizations found"
+          onRowClick={(row) => router.push(`/organizations/${row.id}`)}
+        />
+      </div>
 
       {totalPages > 1 && (
         <Pagination

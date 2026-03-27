@@ -68,9 +68,9 @@ export default function AIDiscoveryPage() {
       key: 'entityType',
       header: 'Type',
       render: (row) => (
-        <Badge variant="info" size="sm">
+        <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
           {String(row.entityType ?? '').replace(/_/g, ' ')}
-        </Badge>
+        </span>
       ),
     },
     {
@@ -84,9 +84,9 @@ export default function AIDiscoveryPage() {
       key: 'discoveryMethod',
       header: 'Discovery Method',
       render: (row) => (
-        <Badge variant="neutral" size="sm">
+        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
           {String(row.discoveryMethod ?? '').replace(/_/g, ' ')}
-        </Badge>
+        </span>
       ),
     },
     {
@@ -122,10 +122,10 @@ export default function AIDiscoveryPage() {
   ];
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-900">AI Discovery</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900">AI Discovery</h2>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-[16px] border border-gray-100 bg-white p-4 shadow-card">
         <div className="w-44">
           <Select
             placeholder="Match Status"
@@ -156,13 +156,15 @@ export default function AIDiscoveryPage() {
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={items}
-        loading={query.isLoading}
-        emptyMessage="No discovered entities found"
-        onRowClick={(row) => setSelectedEntity(row)}
-      />
+      <div className="overflow-hidden rounded-[16px] border border-gray-100 bg-white shadow-card">
+        <DataTable
+          columns={columns}
+          data={items}
+          loading={query.isLoading}
+          emptyMessage="No discovered entities found"
+          onRowClick={(row) => setSelectedEntity(row)}
+        />
+      </div>
 
       {totalPages > 1 && (
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
@@ -175,51 +177,55 @@ export default function AIDiscoveryPage() {
         size="lg"
       >
         {selectedEntity && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-4 rounded-[10px] bg-gray-50 p-4 text-sm">
               <div>
-                <p className="text-gray-500">Name</p>
-                <p className="font-medium">
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Name</p>
+                <p className="mt-1 font-medium text-gray-800">
                   {String(selectedEntity.name ?? selectedEntity.entityName ?? '—')}
                 </p>
               </div>
               <div>
-                <p className="text-gray-500">Type</p>
-                <Badge variant="info">
-                  {String(selectedEntity.entityType ?? '')}
-                </Badge>
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Type</p>
+                <div className="mt-1">
+                  <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
+                    {String(selectedEntity.entityType ?? '')}
+                  </span>
+                </div>
               </div>
               <div>
-                <p className="text-gray-500">Source</p>
-                <p className="font-medium">{String(selectedEntity.source ?? '—')}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Source</p>
+                <p className="mt-1 font-medium text-gray-800">{String(selectedEntity.source ?? '—')}</p>
               </div>
               <div>
-                <p className="text-gray-500">Discovery Method</p>
-                <p className="font-medium">
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Discovery Method</p>
+                <p className="mt-1 font-medium text-gray-800">
                   {String(selectedEntity.discoveryMethod ?? '—').replace(/_/g, ' ')}
                 </p>
               </div>
               <div>
-                <p className="text-gray-500">Match Status</p>
-                <Badge
-                  variant={matchVariant[String(selectedEntity.matchStatus)] ?? 'neutral'}
-                >
-                  {String(selectedEntity.matchStatus ?? '—').replace(/_/g, ' ')}
-                </Badge>
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Match Status</p>
+                <div className="mt-1">
+                  <Badge
+                    variant={matchVariant[String(selectedEntity.matchStatus)] ?? 'neutral'}
+                  >
+                    {String(selectedEntity.matchStatus ?? '—').replace(/_/g, ' ')}
+                  </Badge>
+                </div>
               </div>
               <div>
-                <p className="text-gray-500">Routed To</p>
-                <p className="font-medium">
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Routed To</p>
+                <p className="mt-1 font-medium text-gray-800">
                   {String(selectedEntity.routedTo ?? selectedEntity.assignedTeam ?? '—')}
                 </p>
               </div>
             </div>
 
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
                 Extracted Profile
               </p>
-              <pre className="max-h-64 overflow-auto rounded bg-gray-50 p-3 text-xs text-gray-700">
+              <pre className="max-h-64 overflow-auto rounded-[10px] bg-gray-50 p-4 text-xs text-gray-700">
                 {JSON.stringify(selectedEntity.extractedProfile ?? selectedEntity.profile ?? selectedEntity, null, 2)}
               </pre>
             </div>

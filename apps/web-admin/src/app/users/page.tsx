@@ -43,8 +43,8 @@ export default function UsersPage() {
       key: 'name',
       header: 'Name',
       render: (row) => (
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-100 to-brand-200 text-xs font-semibold text-brand-700">
             {String(row.firstName ?? '?').charAt(0)}
             {String(row.lastName ?? '').charAt(0)}
           </div>
@@ -77,9 +77,9 @@ export default function UsersPage() {
               <span className="text-xs text-gray-400">—</span>
             ) : (
               roles.map((role: string, i: number) => (
-                <Badge key={i} variant="neutral" size="sm">
+                <span key={i} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                   {role}
-                </Badge>
+                </span>
               ))
             )}
           </div>
@@ -130,29 +130,35 @@ export default function UsersPage() {
   const totalPages = query.data?.totalPages ?? 1;
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-900">Users</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900">Users</h2>
 
-      <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
-        <div className="w-80">
-          <Input
+      <div className="flex items-center gap-3 rounded-[16px] border border-gray-100 bg-white p-4 shadow-card">
+        <div className="relative w-80">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <input
             placeholder="Search by name or email…"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
+            className="w-full rounded-[10px] border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={items}
-        loading={query.isLoading}
-        emptyMessage="No users found"
-        onRowClick={(row) => setSelectedUser(row)}
-      />
+      <div className="overflow-hidden rounded-[16px] border border-gray-100 bg-white shadow-card">
+        <DataTable
+          columns={columns}
+          data={items}
+          loading={query.isLoading}
+          emptyMessage="No users found"
+          onRowClick={(row) => setSelectedUser(row)}
+        />
+      </div>
 
       {totalPages > 1 && (
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
@@ -165,37 +171,41 @@ export default function UsersPage() {
         size="lg"
       >
         {selectedUser && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="space-y-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand-100 to-brand-200 text-lg font-bold text-brand-700">
+                {String(selectedUser.firstName ?? '?').charAt(0)}
+                {String(selectedUser.lastName ?? '').charAt(0)}
+              </div>
               <div>
-                <p className="text-gray-500">Name</p>
-                <p className="font-medium">
+                <p className="text-lg font-semibold text-gray-900">
                   {String(selectedUser.firstName ?? '')} {String(selectedUser.lastName ?? '')}
                 </p>
+                <p className="text-sm text-gray-500">{String(selectedUser.email ?? '—')}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 rounded-[10px] bg-gray-50 p-4 text-sm">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Status</p>
+                <div className="mt-1">
+                  <StatusBadge status={String(selectedUser.status ?? '')} />
+                </div>
               </div>
               <div>
-                <p className="text-gray-500">Email</p>
-                <p className="font-medium">{String(selectedUser.email ?? '—')}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Risk Level</p>
+                <p className="mt-1 font-medium text-gray-800">{String(selectedUser.riskLevel ?? '—')}</p>
               </div>
               <div>
-                <p className="text-gray-500">Status</p>
-                <StatusBadge status={String(selectedUser.status ?? '')} />
-              </div>
-              <div>
-                <p className="text-gray-500">Risk Level</p>
-                <p className="font-medium">{String(selectedUser.riskLevel ?? '—')}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Joined</p>
-                <p className="font-medium">
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Joined</p>
+                <p className="mt-1 font-medium text-gray-800">
                   {selectedUser.createdAt
                     ? new Date(String(selectedUser.createdAt)).toLocaleDateString()
                     : '—'}
                 </p>
               </div>
               <div>
-                <p className="text-gray-500">Last Active</p>
-                <p className="font-medium">
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Last Active</p>
+                <p className="mt-1 font-medium text-gray-800">
                   {selectedUser.lastActiveAt
                     ? new Date(String(selectedUser.lastActiveAt)).toLocaleDateString()
                     : '—'}
@@ -204,7 +214,7 @@ export default function UsersPage() {
             </div>
             <hr className="border-gray-100" />
             <div>
-              <p className="mb-2 text-sm font-semibold text-gray-700">Actions</p>
+              <p className="mb-3 text-sm font-semibold text-gray-700">Actions</p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"

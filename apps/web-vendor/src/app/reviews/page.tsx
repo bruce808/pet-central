@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Card,
   Button,
   Textarea,
   Badge,
@@ -22,7 +21,7 @@ export default function ReviewsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
+      <div className="flex gap-1 rounded-[10px] bg-gray-100 p-1">
         <TabButton active={tab === 'received'} onClick={() => setTab('received')}>
           Reviews Received
         </TabButton>
@@ -49,7 +48,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+      className={`flex-1 rounded-[8px] px-4 py-2 text-sm font-medium transition-all duration-150 ${
         active
           ? 'bg-white text-gray-900 shadow-sm'
           : 'text-gray-500 hover:text-gray-700'
@@ -110,31 +109,40 @@ function ReviewCard({ review }: { review: ReviewResponse }) {
   });
 
   return (
-    <Card padding="md">
+    <div className="rounded-[16px] border border-gray-100 bg-white p-5 shadow-card">
       <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Stars rating={review.ratingOverall} />
-            <span className="text-sm font-medium text-gray-900">
-              {review.ratingOverall}/5
-            </span>
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-600 text-sm font-semibold text-white">
+            {review.reviewer?.displayName?.[0] ?? 'A'}
           </div>
-          <p className="mt-1 text-xs text-gray-500">
-            By {review.reviewer?.displayName ?? 'Anonymous'} &middot;{' '}
-            {new Date(review.createdAt).toLocaleDateString()}
-          </p>
+          <div>
+            <div className="flex items-center gap-2">
+              <Stars rating={review.ratingOverall} />
+              <span className="text-sm font-semibold text-gray-900">
+                {review.ratingOverall}/5
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-gray-500">
+              By {review.reviewer?.displayName ?? 'Anonymous'} &middot;{' '}
+              {new Date(review.createdAt).toLocaleDateString()}
+            </p>
+          </div>
         </div>
         {review.responses.length > 0 ? (
-          <Badge variant="success" size="sm">Responded</Badge>
+          <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+            Responded
+          </span>
         ) : (
-          <Badge variant="warning" size="sm">Awaiting Response</Badge>
+          <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+            Awaiting Response
+          </span>
         )}
       </div>
 
-      <p className="mt-3 text-sm text-gray-700">{review.reviewText}</p>
+      <p className="mt-3 text-sm leading-relaxed text-gray-700">{review.reviewText}</p>
 
       {review.responses.length > 0 && (
-        <div className="mt-3 rounded-lg bg-gray-50 p-3">
+        <div className="mt-3 rounded-[10px] bg-gray-50 border border-gray-100 p-4">
           <p className="text-xs font-medium text-gray-500">Your response</p>
           <p className="mt-1 text-sm text-gray-700">{review.responses[0]?.responseText}</p>
         </div>
@@ -184,7 +192,7 @@ function ReviewCard({ review }: { review: ReviewResponse }) {
           )}
         </>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -239,7 +247,7 @@ function UserFeedbackForm() {
   ];
 
   return (
-    <Card padding="lg">
+    <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
       <h2 className="mb-2 text-lg font-semibold text-gray-900">
         Submit User Feedback
       </h2>
@@ -283,16 +291,16 @@ function UserFeedbackForm() {
           placeholder="Additional notes about this interaction…"
         />
         <div className="flex justify-end">
-          <Button
-            variant="primary"
+          <button
+            type="button"
             onClick={() => feedbackMutation.mutate()}
-            loading={feedbackMutation.isPending}
-            disabled={!userId || !responsiveness || !seriousness || !courtesy}
+            disabled={feedbackMutation.isPending || !userId || !responsiveness || !seriousness || !courtesy}
+            className="rounded-[10px] bg-gradient-to-r from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-brand-700 hover:to-brand-800 disabled:opacity-60"
           >
-            Submit Feedback
-          </Button>
+            {feedbackMutation.isPending ? 'Submitting…' : 'Submit Feedback'}
+          </button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

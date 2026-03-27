@@ -81,7 +81,7 @@ function HandoffContent() {
   if (sent && method !== 'qr') {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center animate-fade-in-up">
-        <div className="animate-scale-in rounded-full bg-brand-100 p-6">
+        <div className="animate-scale-in rounded-full bg-gradient-to-br from-brand-100 to-brand-200 p-6">
           <CheckCircleIcon className="h-16 w-16 text-brand-600" />
         </div>
         <h2 className="mt-6 font-heading text-4xl font-bold tracking-tight text-gray-900">Sent!</h2>
@@ -107,7 +107,7 @@ function HandoffContent() {
       <div className="pointer-events-none absolute -top-20 left-1/2 h-64 w-96 -translate-x-1/2 rounded-full bg-brand-100/40 blur-3xl" />
 
       <div className="relative text-center">
-        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-50">
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-50 p-5">
           <PhoneIcon className="h-10 w-10 text-brand-600" />
         </div>
         <h2 className="font-heading text-3xl font-bold tracking-tight text-gray-900">

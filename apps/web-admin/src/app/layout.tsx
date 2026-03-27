@@ -15,13 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+    <html lang="en" className="scroll-smooth">
+      <body className="min-h-screen bg-surface-muted text-gray-900 antialiased">
         <Providers>
           <AdminSidebar />
           <div className="md:pl-64">
             <AdminTopBar />
-            <main className="p-6">{children}</main>
+            <main className="p-8">{children}</main>
           </div>
         </Providers>
       </body>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Avatar, Badge, Input, Button, LoadingSpinner, EmptyState } from '@pet-central/ui';
+import { Avatar, Badge, Input, Button, LoadingSpinner, EmptyState } from '@pet-central/ui';
 import { messages } from '@/lib/api';
 import type { ConversationResponse, MessageResponse } from '@pet-central/types';
 
@@ -20,24 +20,24 @@ export default function MessagesPage() {
   return (
     <div className="flex h-[calc(100vh-7rem)] gap-4">
       {/* Left Panel - Conversation List */}
-      <div className="w-80 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-900">Inbox</h2>
+      <div className="w-80 shrink-0 overflow-hidden rounded-[16px] border border-gray-100 bg-white shadow-card">
+        <div className="border-b border-gray-100 px-5 py-4">
+          <h2 className="font-semibold text-gray-900">Inbox</h2>
         </div>
-        <div className="overflow-y-auto" style={{ height: 'calc(100% - 49px)' }}>
+        <div className="overflow-y-auto" style={{ height: 'calc(100% - 57px)' }}>
           {isLoading ? (
             <div className="flex h-32 items-center justify-center">
               <LoadingSpinner />
             </div>
           ) : items.length === 0 ? (
-            <p className="p-4 text-center text-sm text-gray-400">No conversations</p>
+            <p className="p-5 text-center text-sm text-gray-400">No conversations</p>
           ) : (
             items.map((convo: ConversationResponse) => (
               <button
                 key={convo.id}
                 type="button"
                 onClick={() => setSelectedId(convo.id)}
-                className={`flex w-full items-start gap-3 border-b border-gray-50 px-4 py-3 text-left transition-colors ${
+                className={`flex w-full items-start gap-3 border-b border-gray-50 px-5 py-3.5 text-left transition-all duration-150 ${
                   selectedId === convo.id ? 'bg-brand-50' : 'hover:bg-gray-50'
                 }`}
               >
@@ -64,9 +64,9 @@ export default function MessagesPage() {
                   </p>
                 </div>
                 {convo.unreadCount > 0 && (
-                  <Badge variant="danger" size="sm">
+                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
                     {convo.unreadCount}
-                  </Badge>
+                  </span>
                 )}
               </button>
             ))
@@ -75,7 +75,7 @@ export default function MessagesPage() {
       </div>
 
       {/* Right Panel - Message Thread */}
-      <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-[16px] border border-gray-100 bg-white shadow-card">
         {!selected ? (
           <div className="flex flex-1 items-center justify-center">
             <EmptyState
@@ -120,7 +120,7 @@ function MessageThread({ conversation }: { conversation: ConversationResponse })
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
         <div>
           <p className="text-sm font-semibold text-gray-900">
             {conversation.participants?.[0]?.displayName ?? 'User'}
@@ -131,12 +131,12 @@ function MessageThread({ conversation }: { conversation: ConversationResponse })
             </p>
           )}
         </div>
-        <select className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600">
+        <select className="rounded-[10px] border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 focus:border-brand-300 focus:outline-none focus:ring-1 focus:ring-brand-300">
           <option>Assign to…</option>
         </select>
       </div>
 
-      <div className="flex flex-1 flex-col-reverse gap-3 overflow-y-auto p-5">
+      <div className="flex flex-1 flex-col-reverse gap-3 overflow-y-auto p-6">
         {isLoading ? (
           <div className="flex justify-center py-8">
             <LoadingSpinner />
@@ -150,10 +150,10 @@ function MessageThread({ conversation }: { conversation: ConversationResponse })
                 className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
+                  className={`max-w-[70%] px-4 py-2.5 ${
                     isOwn
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-gray-100 text-gray-900'
+                      ? 'bg-brand-600 text-white rounded-2xl rounded-br-sm'
+                      : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-sm'
                   }`}
                 >
                   <p className="text-sm">{msg.bodyText}</p>
@@ -182,18 +182,15 @@ function MessageThread({ conversation }: { conversation: ConversationResponse })
             onChange={(e) => setNewMessage(e.target.value)}
             className="flex-1"
           />
-          <Button
-            variant="primary"
+          <button
+            type="button"
             onClick={handleSend}
-            loading={sendMutation.isPending}
-            disabled={!newMessage.trim()}
+            disabled={sendMutation.isPending || !newMessage.trim()}
+            className="rounded-[10px] bg-gradient-to-r from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-brand-700 hover:to-brand-800 disabled:opacity-60"
           >
-            Send
-          </Button>
+            {sendMutation.isPending ? 'Sending…' : 'Send'}
+          </button>
         </div>
-        <p className="mt-2 text-xs text-gray-400">
-          Canned responses coming soon
-        </p>
       </div>
     </>
   );

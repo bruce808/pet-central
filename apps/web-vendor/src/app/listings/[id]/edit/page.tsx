@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import {
   Button,
-  Card,
   Input,
   Select,
   Textarea,
@@ -131,7 +130,7 @@ export default function EditListingPage() {
         </div>
       </div>
 
-      <Card padding="lg">
+      <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
         <h2 className="mb-6 text-lg font-semibold text-gray-900">
           Pet Information
         </h2>
@@ -167,9 +166,9 @@ export default function EditListingPage() {
             rows={4}
           />
         </div>
-      </Card>
+      </div>
 
-      <Card padding="lg">
+      <div className="rounded-[16px] border border-gray-100 bg-white p-6 shadow-card">
         <h2 className="mb-6 text-lg font-semibold text-gray-900">
           Listing Details
         </h2>
@@ -206,19 +205,20 @@ export default function EditListingPage() {
             onChange={(e) => setLocation(e.target.value)}
           />
         </div>
-      </Card>
+      </div>
 
       <div className="flex justify-end gap-3">
         <Button variant="outline" onClick={() => router.push('/listings')}>
           Cancel
         </Button>
-        <Button
-          variant="primary"
+        <button
+          type="button"
           onClick={() => updateMutation.mutate()}
-          loading={updateMutation.isPending}
+          disabled={updateMutation.isPending}
+          className="rounded-[10px] bg-gradient-to-r from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-brand-700 hover:to-brand-800 disabled:opacity-60"
         >
-          Save Changes
-        </Button>
+          {updateMutation.isPending ? 'Saving…' : 'Save Changes'}
+        </button>
       </div>
     </div>
   );

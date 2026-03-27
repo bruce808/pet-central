@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Card,
   Button,
   Input,
   Select,
@@ -15,6 +14,13 @@ import {
 } from '@pet-central/ui';
 import { resources as resourcesApi } from '@/lib/api';
 import type { ResourceResponse } from '@pet-central/types';
+
+const typeBadgeColors: Record<string, string> = {
+  ARTICLE: 'bg-blue-50 text-blue-700',
+  GUIDE: 'bg-emerald-50 text-emerald-700',
+  FAQ: 'bg-amber-50 text-amber-700',
+  VIDEO: 'bg-purple-50 text-purple-700',
+};
 
 export default function ResourcesPage() {
   const queryClient = useQueryClient();
@@ -74,13 +80,21 @@ export default function ResourcesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{data?.total ?? 0} resources</p>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Resources</h2>
+          <p className="mt-1 text-sm text-gray-500">{data?.total ?? 0} resources</p>
+        </div>
         <Button variant="primary" size="md" onClick={() => setShowNew(true)}>
-          New Resource
+          <span className="flex items-center gap-2">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            New Resource
+          </span>
         </Button>
       </div>
 
-      <Card padding="none">
+      <div className="rounded-[16px] border border-gray-100 bg-white shadow-card overflow-hidden">
         {isLoading ? (
           <div className="flex h-32 items-center justify-center">
             <LoadingSpinner />
@@ -96,31 +110,33 @@ export default function ResourcesPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs font-medium uppercase tracking-wider text-gray-500">
-                  <th className="px-5 py-3">Title</th>
-                  <th className="px-3 py-3">Type</th>
-                  <th className="px-3 py-3">Status</th>
-                  <th className="px-3 py-3">Published</th>
-                  <th className="px-5 py-3" />
+                  <th className="px-6 py-3.5">Title</th>
+                  <th className="px-3 py-3.5">Type</th>
+                  <th className="px-3 py-3.5">Status</th>
+                  <th className="px-3 py-3.5">Published</th>
+                  <th className="px-6 py-3.5" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {items.map((resource: ResourceResponse) => (
-                  <tr key={resource.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-3 font-medium text-gray-900">
+                  <tr key={resource.id} className="transition-colors hover:bg-gray-50/50">
+                    <td className="px-6 py-3.5 font-medium text-gray-900">
                       {resource.title}
                     </td>
-                    <td className="px-3 py-3 text-gray-500">
-                      {resource.resourceType ?? '—'}
+                    <td className="px-3 py-3.5">
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${typeBadgeColors[resource.resourceType ?? ''] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {resource.resourceType ?? '—'}
+                      </span>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3.5">
                       <StatusBadge status={resource.status ?? 'DRAFT'} />
                     </td>
-                    <td className="px-3 py-3 text-gray-500">
+                    <td className="px-3 py-3.5 text-gray-500">
                       {resource.publishedAt
                         ? new Date(resource.publishedAt).toLocaleDateString()
                         : '—'}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="px-6 py-3.5 text-right">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -135,7 +151,7 @@ export default function ResourcesPage() {
             </table>
           </div>
         )}
-      </Card>
+      </div>
 
       {/* New Resource Modal */}
       <Modal

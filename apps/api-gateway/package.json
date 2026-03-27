@@ -1,0 +1,48 @@
+{
+  "name": "@pet-central/api-gateway",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "NODE_OPTIONS='--experimental-transform-types' nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/s3-request-presigner": "^3.700.0",
+    "@nestjs/bullmq": "^11.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@pet-central/ai-core": "workspace:*",
+    "@pet-central/auth": "workspace:*",
+    "@pet-central/database": "workspace:*",
+    "@pet-central/messaging": "workspace:*",
+    "@pet-central/partner-routing": "workspace:*",
+    "@pet-central/search": "workspace:*",
+    "@pet-central/trust": "workspace:*",
+    "@pet-central/types": "workspace:*",
+    "@prisma/client": "^6.4.0",
+    "bullmq": "^5.30.0",
+    "class-transformer": "^0.5.0",
+    "class-validator": "^0.14.0",
+    "cookie-parser": "^1.4.0",
+    "ioredis": "^5.4.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@swc/cli": "^0.8.0",
+    "@swc/core": "^1.15.21",
+    "@swc/register": "^0.1.10",
+    "@types/cookie-parser": "^1.4.0",
+    "@types/express": "^5.0.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

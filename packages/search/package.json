@@ -1,0 +1,13 @@
+{
+  "name": "@pet-central/search",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": { "lint": "eslint src/", "clean": "rm -rf dist .turbo" },
+  "dependencies": {
+    "@opensearch-project/opensearch": "^2.12.0"
+  },
+  "devDependencies": { "typescript": "^5.7.0" }
+}

@@ -1,0 +1,981 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  BANNED
+}
+
+enum OrgType {
+  BREEDER
+  SHELTER
+  HUMANE_SOCIETY
+  RESCUE
+  NONPROFIT
+  AGENCY
+  FOSTER_NETWORK
+}
+
+enum OrgStatus {
+  DRAFT
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum MembershipRole {
+  ADMIN
+  STAFF
+  REVIEWER
+}
+
+enum VerificationType {
+  IDENTITY
+  BUSINESS_LICENSE
+  NONPROFIT_STATUS
+  RESCUE_AFFILIATION
+  AGENCY_CERTIFICATION
+  INSURANCE
+  BACKGROUND_CHECK
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  REVOKED
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum PetType {
+  DOG
+  CAT
+  BIRD
+}
+
+enum PetSex {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum SizeCategory {
+  TINY
+  SMALL
+  MEDIUM
+  LARGE
+  EXTRA_LARGE
+}
+
+enum AdoptionOrSaleType {
+  ADOPTION
+  SALE
+  FOSTER
+  REHOME
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  PAUSED
+  ADOPTED_OR_SOLD
+  REMOVED
+  SUSPENDED
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  PENDING_AVAILABILITY
+  RESERVED
+  UNAVAILABLE
+}
+
+enum ModerationStatus {
+  PENDING_MODERATION
+  APPROVED
+  REJECTED
+  FLAGGED
+  REQUIRES_REVIEW
+}
+
+enum InteractionType {
+  INQUIRY
+  VISIT
+  APPLICATION
+  ADOPTION
+  PURCHASE
+  SUPPORT_CASE
+}
+
+enum ReviewerActorType {
+  USER_REVIEWER
+  VENDOR_MEMBER_REVIEWER
+}
+
+enum ReviewSubjectType {
+  ORGANIZATION_SUBJECT
+  USER_SUBJECT
+}
+
+enum VisibilityScope {
+  PUBLIC
+  INTERNAL
+  LIMITED
+}
+
+enum DisputeStatus {
+  NONE
+  DISPUTED
+  UNDER_REVIEW
+  RESOLVED
+}
+
+enum ConversationType {
+  USER_VENDOR
+  CASE_INTERNAL
+  PARTNER_CASE
+}
+
+enum ParticipantRole {
+  INITIATOR
+  RESPONDER
+  OBSERVER
+  MODERATOR_ROLE
+}
+
+enum MessageType {
+  TEXT
+  ATTACHMENT
+  SYSTEM_MSG
+  AI_GENERATED
+  AI_ASSISTED
+}
+
+enum CaseType {
+  VENDOR_VERIFICATION
+  COMPLAINT
+  FRAUD_REPORT
+  REVIEW_DISPUTE
+  WELFARE_ISSUE
+}
+
+enum CasePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CaseSeverity {
+  MINOR
+  MODERATE
+  SERIOUS
+  SEV_CRITICAL
+}
+
+enum CaseStatus {
+  NEW_CASE
+  TRIAGED
+  AWAITING_DOCS
+  ASSIGNED
+  INVESTIGATING
+  PENDING_PARTNER
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+enum PartnerType {
+  NONPROFIT_PARTNER
+  AGENCY_PARTNER
+  CONTRACTOR
+}
+
+enum ResourceType {
+  ARTICLE
+  TIP
+  FAQ
+  GUIDE
+}
+
+enum ResourceStatus {
+  DRAFT_RESOURCE
+  PENDING_REVIEW_RESOURCE
+  PUBLISHED_RESOURCE
+  ARCHIVED
+}
+
+enum ChannelType {
+  FIRST_PARTY_WEB
+  PARTNER_EMBED
+  KIOSK_TERMINAL
+  REFERRAL_LINK
+}
+
+enum ReferralType {
+  LEAD
+  RECOMMENDATION_CLICK
+  INQUIRY_REFERRAL
+  LISTING_VIEW
+  PRODUCT_RECOMMENDATION
+}
+
+enum AIChannelType {
+  WEB_CHAT
+  KIOSK_AI
+  PARTNER_EMBED_AI
+  INTERNAL_ASSISTANT
+}
+
+enum AIRunType {
+  DRAFT_REPLY
+  AUTO_REPLY
+  SUMMARY
+  CLASSIFICATION
+  PARTNER_DISCOVERY
+  VENDOR_SCAN
+}
+
+enum AIRunStatus {
+  AI_PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum HumanOverrideStatus {
+  NO_OVERRIDE
+  PENDING_REVIEW_OVERRIDE
+  OVERRIDE_APPROVED
+  OVERRIDE_REJECTED
+  MODIFIED
+}
+
+enum DiscoveredEntityType {
+  VENDOR_ENTITY
+  SHELTER_ENTITY
+  HUMANE_SOCIETY_ENTITY
+  NONPROFIT_ENTITY
+  AGENCY_ENTITY
+  CONTRACTOR_ENTITY
+  PARTNER_ENTITY
+}
+
+enum DiscoveryMethod {
+  AI_SCAN
+  PARTNER_REFERRAL_DISCOVERY
+  MANUAL_DISCOVERY
+}
+
+enum MatchStatus {
+  NEW_MATCH
+  REVIEWING
+  CONFIRMED
+  MATCH_REJECTED
+  DUPLICATE
+}
+
+enum AuditActorType {
+  USER_ACTOR
+  SYSTEM_ACTOR
+  AI_ACTOR
+  ADMIN_ACTOR
+  PARTNER_ACTOR
+}
+
+enum RiskLevel {
+  LOW_RISK
+  MEDIUM_RISK
+  HIGH_RISK
+  CRITICAL_RISK
+}
+
+enum BadgeVisibility {
+  PUBLIC_BADGE
+  INTERNAL_BADGE
+}
+
+enum ScanStatus {
+  PENDING_SCAN
+  CLEAN
+  INFECTED
+  SCAN_ERROR
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique
+  emailVerifiedAt DateTime?
+  phoneE164       String?
+  phoneVerifiedAt DateTime?
+  passwordHash    String
+  status          UserStatus @default(PENDING)
+  riskLevel       RiskLevel  @default(LOW_RISK)
+  mfaSecret       String?
+  mfaEnabled      Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  lastLoginAt     DateTime?
+
+  profile             UserProfile?
+  roles               UserRole[]
+  sessions            Session[]
+  organizationMembers OrganizationMember[]
+  sentMessages        Message[]
+  reviews             Review[]
+  interactions        Interaction[]
+  favorites           Favorite[]
+  partnerMembers      PartnerMember[]
+  conversationsCreated Conversation[]
+  caseEvents          CaseEvent[]
+  caseNotes           CaseNote[]
+  casesCreated        Case[]            @relation("CaseCreator")
+  casesAssigned       Case[]            @relation("CaseAssignee")
+  aiInteractions      AIInteraction[]   @relation("AIInteractionActor")
+  resources           Resource[]
+}
+
+model UserProfile {
+  userId          String  @id @db.Uuid
+  displayName     String
+  avatarUrl       String?
+  city            String?
+  stateRegion     String?
+  country         String?
+  bio             String?
+  preferencesJson Json?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Role {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+
+  userRoles UserRole[]
+}
+
+model UserRole {
+  id        String  @id @default(uuid()) @db.Uuid
+  userId    String  @db.Uuid
+  roleId    String  @db.Uuid
+  scopeType String?
+  scopeId   String?
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId, scopeType, scopeId])
+  @@index([userId])
+}
+
+model Session {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @db.Uuid
+  refreshTokenHash  String
+  deviceFingerprint String?
+  ipAddress         String?
+  userAgent         String?
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model Organization {
+  id               String   @id @default(uuid()) @db.Uuid
+  legalName        String
+  publicName       String
+  organizationType OrgType
+  description      String?
+  websiteUrl       String?
+  phone            String?
+  email            String?
+  addressLine1     String?
+  city             String
+  region           String
+  postalCode       String?
+  country          String
+  latitude         Float?
+  longitude        Float?
+  serviceRadiusKm  Int?
+  status           OrgStatus @default(DRAFT)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  members       OrganizationMember[]
+  verifications OrganizationVerification[]
+  documents     OrganizationDocument[]
+  badges        OrganizationBadge[]
+  pets          Pet[]
+  conversations Conversation[]
+  interactions  Interaction[]
+  resources     Resource[]
+  partnerReferrals PartnerReferral[]
+}
+
+model OrganizationMember {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  userId         String         @db.Uuid
+  membershipRole MembershipRole
+  createdAt      DateTime       @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([organizationId, userId])
+}
+
+model OrganizationVerification {
+  id               String             @id @default(uuid()) @db.Uuid
+  organizationId   String             @db.Uuid
+  verificationType VerificationType
+  status           VerificationStatus @default(PENDING)
+  submittedAt      DateTime           @default(now())
+  reviewedAt       DateTime?
+  reviewedByUserId String?            @db.Uuid
+  expiresAt        DateTime?
+  notesInternal    String?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model OrganizationDocument {
+  id               String           @id @default(uuid()) @db.Uuid
+  organizationId   String           @db.Uuid
+  documentType     VerificationType
+  storageKey       String
+  status           DocumentStatus   @default(PENDING)
+  uploadedByUserId String           @db.Uuid
+  createdAt        DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+}
+
+model TrustBadge {
+  id               String          @id @default(uuid()) @db.Uuid
+  code             String          @unique
+  label            String
+  description      String?
+  publicVisibility BadgeVisibility @default(PUBLIC_BADGE)
+
+  organizationBadges OrganizationBadge[]
+}
+
+model OrganizationBadge {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  badgeId        String    @db.Uuid
+  assignedByUserId String  @db.Uuid
+  assignedAt     DateTime  @default(now())
+  expiresAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  badge        TrustBadge   @relation(fields: [badgeId], references: [id])
+
+  @@unique([organizationId, badgeId])
+}
+
+model Pet {
+  id                String            @id @default(uuid()) @db.Uuid
+  organizationId    String            @db.Uuid
+  petType           PetType
+  breedPrimary      String?
+  breedSecondary    String?
+  speciesSubtype    String?
+  name              String
+  description       String?
+  sex               PetSex            @default(UNKNOWN)
+  ageValue          Int?
+  ageUnit           String?
+  birthDateEstimated DateTime?
+  sizeCategory      SizeCategory?
+  color             String?
+  temperamentJson   Json?
+  healthJson        Json?
+  adoptionOrSaleType AdoptionOrSaleType
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id])
+  listing      PetListing?
+  media        PetMedia[]
+  attributes   PetAttribute[]
+
+  @@index([organizationId])
+  @@index([petType])
+}
+
+model PetListing {
+  id                 String             @id @default(uuid()) @db.Uuid
+  petId              String             @unique @db.Uuid
+  listingStatus      ListingStatus      @default(DRAFT)
+  title              String
+  summary            String?
+  feeAmount          Decimal?
+  feeCurrency        String?            @default("USD")
+  availableFrom      DateTime?
+  availabilityStatus AvailabilityStatus @default(AVAILABLE)
+  locationCity       String
+  locationRegion     String
+  locationCountry    String
+  latitude           Float?
+  longitude          Float?
+  publishedAt        DateTime?
+  removedAt          DateTime?
+  moderationStatus   ModerationStatus   @default(PENDING_MODERATION)
+  trustRankSnapshot  Float?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  pet           Pet            @relation(fields: [petId], references: [id])
+  favorites     Favorite[]
+  interactions  Interaction[]
+  conversations Conversation[]
+  partnerReferrals PartnerReferral[]
+
+  @@index([petId])
+  @@index([listingStatus])
+  @@index([moderationStatus])
+  @@index([locationCity, locationRegion, locationCountry])
+  @@index([availabilityStatus])
+}
+
+model PetMedia {
+  id         String   @id @default(uuid()) @db.Uuid
+  petId      String   @db.Uuid
+  mediaType  String
+  storageKey String
+  sortOrder  Int      @default(0)
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id])
+
+  @@index([petId])
+}
+
+model PetAttribute {
+  id             String @id @default(uuid()) @db.Uuid
+  petId          String @db.Uuid
+  attributeKey   String
+  attributeValue String
+
+  pet Pet @relation(fields: [petId], references: [id])
+
+  @@index([petId])
+}
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  listingId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user    User       @relation(fields: [userId], references: [id])
+  listing PetListing @relation(fields: [listingId], references: [id])
+
+  @@unique([userId, listingId])
+}
+
+model Interaction {
+  id                String          @id @default(uuid()) @db.Uuid
+  userId            String          @db.Uuid
+  organizationId    String          @db.Uuid
+  listingId         String?         @db.Uuid
+  conversationId    String?         @db.Uuid
+  interactionType   InteractionType
+  occurredAt        DateTime        @default(now())
+  verificationLevel Int             @default(0)
+
+  user         User          @relation(fields: [userId], references: [id])
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  listing      PetListing?   @relation(fields: [listingId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Review {
+  id                   String              @id @default(uuid()) @db.Uuid
+  reviewerUserId       String              @db.Uuid
+  reviewerActorType    ReviewerActorType
+  subjectType          ReviewSubjectType
+  subjectId            String              @db.Uuid
+  interactionId        String?             @db.Uuid
+  ratingOverall        Int
+  ratingDimensionsJson Json?
+  reviewText           String?
+  visibilityScope      VisibilityScope     @default(PUBLIC)
+  moderationStatus     ModerationStatus    @default(PENDING_MODERATION)
+  disputeStatus        DisputeStatus       @default(NONE)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  reviewer  User             @relation(fields: [reviewerUserId], references: [id])
+  responses ReviewResponse[]
+  flags     ReviewFlag[]
+
+  @@index([subjectType, subjectId])
+  @@index([reviewerUserId])
+  @@index([moderationStatus])
+}
+
+model ReviewResponse {
+  id              String   @id @default(uuid()) @db.Uuid
+  reviewId        String   @db.Uuid
+  responderUserId String   @db.Uuid
+  responseText    String
+  createdAt       DateTime @default(now())
+
+  review Review @relation(fields: [reviewId], references: [id])
+
+  @@index([reviewId])
+}
+
+model ReviewFlag {
+  id             String   @id @default(uuid()) @db.Uuid
+  reviewId       String   @db.Uuid
+  flaggedByUserId String  @db.Uuid
+  reasonCode     String
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  review Review @relation(fields: [reviewId], references: [id])
+
+  @@index([reviewId])
+}
+
+model Conversation {
+  id               String           @id @default(uuid()) @db.Uuid
+  conversationType ConversationType @default(USER_VENDOR)
+  listingId        String?          @db.Uuid
+  organizationId   String?          @db.Uuid
+  createdByUserId  String           @db.Uuid
+  createdAt        DateTime         @default(now())
+
+  listing      PetListing?               @relation(fields: [listingId], references: [id])
+  organization Organization?             @relation(fields: [organizationId], references: [id])
+  createdBy    User                      @relation(fields: [createdByUserId], references: [id])
+  participants ConversationParticipant[]
+  messages     Message[]
+  interactions Interaction[]
+  aiInteractions AIInteraction[]
+
+  @@index([organizationId])
+  @@index([createdByUserId])
+}
+
+model ConversationParticipant {
+  id              String          @id @default(uuid()) @db.Uuid
+  conversationId  String          @db.Uuid
+  userId          String          @db.Uuid
+  participantRole ParticipantRole
+  lastReadAt      DateTime?
+  isBlocked       Boolean         @default(false)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id               String           @id @default(uuid()) @db.Uuid
+  conversationId   String           @db.Uuid
+  senderUserId     String           @db.Uuid
+  bodyText         String
+  messageType      MessageType      @default(TEXT)
+  moderationStatus ModerationStatus @default(PENDING_MODERATION)
+  riskScore        Float            @default(0)
+  createdAt        DateTime         @default(now())
+
+  conversation Conversation       @relation(fields: [conversationId], references: [id])
+  sender       User               @relation(fields: [senderUserId], references: [id])
+  attachments  MessageAttachment[]
+
+  @@index([conversationId])
+  @@index([senderUserId])
+}
+
+model MessageAttachment {
+  id         String     @id @default(uuid()) @db.Uuid
+  messageId  String     @db.Uuid
+  storageKey String
+  fileName   String
+  mimeType   String
+  scanStatus ScanStatus @default(PENDING_SCAN)
+
+  message Message @relation(fields: [messageId], references: [id])
+
+  @@index([messageId])
+}
+
+model Case {
+  id                  String       @id @default(uuid()) @db.Uuid
+  caseType            CaseType
+  sourceType          String
+  sourceId            String
+  priority            CasePriority @default(MEDIUM)
+  severity            CaseSeverity @default(MODERATE)
+  status              CaseStatus   @default(NEW_CASE)
+  region              String?
+  assignedTeam        String?
+  assignedUserId      String?      @db.Uuid
+  assignedPartnerOrgId String?     @db.Uuid
+  createdByUserId     String       @db.Uuid
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  resolvedAt          DateTime?
+
+  createdBy          User                 @relation("CaseCreator", fields: [createdByUserId], references: [id])
+  assignedUser       User?                @relation("CaseAssignee", fields: [assignedUserId], references: [id])
+  assignedPartnerOrg PartnerOrganization? @relation(fields: [assignedPartnerOrgId], references: [id])
+  events             CaseEvent[]
+  notes              CaseNote[]
+  assignments        Assignment[]
+  aiInteractions     AIInteraction[]
+
+  @@index([status])
+  @@index([caseType])
+  @@index([assignedUserId])
+  @@index([assignedPartnerOrgId])
+}
+
+model CaseEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  caseId      String   @db.Uuid
+  eventType   String
+  actorUserId String   @db.Uuid
+  payloadJson Json?
+  createdAt   DateTime @default(now())
+
+  case  Case @relation(fields: [caseId], references: [id])
+  actor User @relation(fields: [actorUserId], references: [id])
+
+  @@index([caseId])
+}
+
+model CaseNote {
+  id           String          @id @default(uuid()) @db.Uuid
+  caseId       String          @db.Uuid
+  authorUserId String          @db.Uuid
+  visibility   VisibilityScope @default(INTERNAL)
+  body         String
+  createdAt    DateTime        @default(now())
+
+  case   Case @relation(fields: [caseId], references: [id])
+  author User @relation(fields: [authorUserId], references: [id])
+
+  @@index([caseId])
+}
+
+model PartnerOrganization {
+  id                String      @id @default(uuid()) @db.Uuid
+  name              String
+  partnerType       PartnerType
+  region            String?
+  contactInfoJson   Json?
+  status            OrgStatus   @default(DRAFT)
+  capabilitiesJson  Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  members          PartnerMember[]
+  assignedCases    Case[]
+  channelOrigins   ChannelOrigin[]
+  partnerReferrals PartnerReferral[] @relation("ReferredPartner")
+
+  @@index([partnerType])
+  @@index([region])
+}
+
+model PartnerMember {
+  id                    String     @id @default(uuid()) @db.Uuid
+  partnerOrganizationId String     @db.Uuid
+  userId                String     @db.Uuid
+  role                  String
+  status                UserStatus @default(ACTIVE)
+  createdAt             DateTime   @default(now())
+
+  partnerOrganization PartnerOrganization @relation(fields: [partnerOrganizationId], references: [id])
+  user                User                @relation(fields: [userId], references: [id])
+
+  @@unique([partnerOrganizationId, userId])
+}
+
+model Assignment {
+  id               String   @id @default(uuid()) @db.Uuid
+  caseId           String   @db.Uuid
+  assignedToType   String
+  assignedToId     String   @db.Uuid
+  assignedByUserId String   @db.Uuid
+  assignedAt       DateTime @default(now())
+  dueAt            DateTime?
+  slaPolicyId      String?
+
+  case Case @relation(fields: [caseId], references: [id])
+
+  @@index([caseId])
+  @@index([assignedToId])
+}
+
+model Resource {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String?        @db.Uuid
+  authorUserId   String?        @db.Uuid
+  resourceType   ResourceType
+  title          String
+  slug           String         @unique
+  bodyMarkdown   String
+  status         ResourceStatus @default(DRAFT_RESOURCE)
+  tagsJson       Json?
+  publishedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  author       User?         @relation(fields: [authorUserId], references: [id])
+
+  @@index([status])
+  @@index([organizationId])
+}
+
+model AIInteraction {
+  id               String        @id @default(uuid()) @db.Uuid
+  actorUserId      String?       @db.Uuid
+  sessionId        String?
+  channelType      AIChannelType
+  conversationId   String?       @db.Uuid
+  caseId           String?       @db.Uuid
+  promptVersion    String
+  modelName        String
+  inputSummary     String?
+  outputSummary    String?
+  actionTakenJson  Json?
+  reviewedByUserId String?       @db.Uuid
+  createdAt        DateTime      @default(now())
+
+  actor        User?         @relation("AIInteractionActor", fields: [actorUserId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+  case         Case?         @relation(fields: [caseId], references: [id])
+
+  @@index([actorUserId])
+  @@index([sessionId])
+}
+
+model AICorrespondenceRun {
+  id                  String              @id @default(uuid()) @db.Uuid
+  relatedEntityType   String
+  relatedEntityId     String              @db.Uuid
+  runType             AIRunType
+  status              AIRunStatus         @default(AI_PENDING)
+  inputRefJson        Json?
+  outputRefJson       Json?
+  confidenceScore     Float?
+  humanOverrideStatus HumanOverrideStatus @default(NO_OVERRIDE)
+  createdAt           DateTime            @default(now())
+  completedAt         DateTime?
+
+  @@index([relatedEntityType, relatedEntityId])
+  @@index([status])
+}
+
+model DiscoveredEntity {
+  id                   String              @id @default(uuid()) @db.Uuid
+  entityType           DiscoveredEntityType
+  sourceUrl            String?
+  sourceName           String?
+  extractedProfileJson Json?
+  discoveryMethod      DiscoveryMethod
+  matchStatus          MatchStatus         @default(NEW_MATCH)
+  routedToTeam         String?
+  createdAt            DateTime            @default(now())
+
+  @@index([entityType])
+  @@index([matchStatus])
+}
+
+model ChannelOrigin {
+  id                     String      @id @default(uuid()) @db.Uuid
+  channelType            ChannelType
+  originPartnerOrgId     String?     @db.Uuid
+  originDomain           String?
+  originLocationName     String?
+  originLocationAddress  String?
+  attributionRulesJson   Json?
+  status                 OrgStatus   @default(ACTIVE)
+  createdAt              DateTime    @default(now())
+
+  originPartnerOrg PartnerOrganization? @relation(fields: [originPartnerOrgId], references: [id])
+  partnerReferrals PartnerReferral[]
+
+  @@index([channelType])
+  @@index([originPartnerOrgId])
+}
+
+model PartnerReferral {
+  id                  String       @id @default(uuid()) @db.Uuid
+  channelOriginId     String       @db.Uuid
+  organizationId      String?      @db.Uuid
+  userId              String?      @db.Uuid
+  referralType        ReferralType
+  referredPartnerOrgId String      @db.Uuid
+  relatedListingId    String?      @db.Uuid
+  createdAt           DateTime     @default(now())
+
+  channelOrigin      ChannelOrigin       @relation(fields: [channelOriginId], references: [id])
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
+  referredPartnerOrg PartnerOrganization @relation("ReferredPartner", fields: [referredPartnerOrgId], references: [id])
+  relatedListing     PetListing?         @relation(fields: [relatedListingId], references: [id])
+
+  @@index([channelOriginId])
+  @@index([referredPartnerOrgId])
+}
+
+model AuditLog {
+  id           String         @id @default(uuid()) @db.Uuid
+  actorType    AuditActorType
+  actorId      String?
+  actionType   String
+  targetType   String
+  targetId     String
+  metadataJson Json?
+  createdAt    DateTime       @default(now())
+
+  @@index([actorType, actorId])
+  @@index([targetType, targetId])
+  @@index([actionType])
+  @@index([createdAt])
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@pet-central/worker-jobs",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "bullmq": "^5.30.0",
+    "ioredis": "^5.4.0",
+    "@pet-central/database": "workspace:*",
+    "@pet-central/types": "workspace:*",
+    "@pet-central/search": "workspace:*",
+    "@pet-central/messaging": "workspace:*",
+    "@pet-central/trust": "workspace:*",
+    "@pet-central/ai-core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

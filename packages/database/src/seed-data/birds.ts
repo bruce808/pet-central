@@ -1,0 +1,294 @@
+import { BreedInfo } from './helpers';
+
+export const BIRD_BREEDS: BreedInfo[] = [
+  {
+    breed: 'Budgerigar',
+    sizes: ['TINY'],
+    colors: ['Green', 'Blue', 'Yellow', 'White', 'Violet', 'Lutino'],
+    temperaments: [
+      ['social', 'playful', 'cheerful'],
+      ['vocal', 'curious', 'friendly'],
+      ['energetic', 'affectionate', 'intelligent'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camperdown_Wildlife_Centre_Budgie.jpg/1200px-Camperdown_Wildlife_Centre_Budgie.jpg',
+    ageRange: [1, 8],
+    priceRange: [15, 100],
+  },
+  {
+    breed: 'Cockatiel',
+    sizes: ['SMALL'],
+    colors: ['Gray', 'Lutino', 'Pearl', 'Pied', 'Whiteface', 'Cinnamon'],
+    temperaments: [
+      ['gentle', 'affectionate', 'whistler'],
+      ['social', 'playful', 'cuddly'],
+      ['curious', 'sweet', 'calm'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Cockatiel_at_Dehiwala_Zoo.jpg/1200px-Cockatiel_at_Dehiwala_Zoo.jpg',
+    ageRange: [1, 20],
+    priceRange: [50, 300],
+  },
+  {
+    breed: 'African Grey Parrot',
+    sizes: ['MEDIUM'],
+    colors: ['Gray with Red Tail', 'Timneh Gray'],
+    temperaments: [
+      ['intelligent', 'talkative', 'sensitive'],
+      ['loyal', 'complex', 'social'],
+      ['clever', 'perceptive', 'affectionate'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Psittacus_erithacus_-perching_on_tray-8d.jpg/1200px-Psittacus_erithacus_-perching_on_tray-8d.jpg',
+    ageRange: [1, 50],
+    priceRange: [1000, 4000],
+  },
+  {
+    breed: 'Cockatoo',
+    sizes: ['MEDIUM', 'LARGE'],
+    colors: ['White', 'Salmon-crested', 'Sulfur-crested', 'Rose-breasted'],
+    temperaments: [
+      ['affectionate', 'social', 'loud'],
+      ['playful', 'cuddly', 'demanding'],
+      ['intelligent', 'energetic', 'attention_seeking'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Cacatua_galerita_-perching_on_branch_-crest-8a-2c.jpg/1200px-Cacatua_galerita_-perching_on_branch_-crest-8a-2c.jpg',
+    ageRange: [1, 60],
+    priceRange: [1000, 5000],
+  },
+  {
+    breed: 'Macaw',
+    sizes: ['LARGE', 'EXTRA_LARGE'],
+    colors: ['Blue and Gold', 'Scarlet', 'Green-winged', 'Hyacinth Blue', 'Military Green'],
+    temperaments: [
+      ['intelligent', 'social', 'loud'],
+      ['playful', 'affectionate', 'majestic'],
+      ['loyal', 'curious', 'spirited'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Ara_ararauna_Luc_Viatour.jpg/1200px-Ara_ararauna_Luc_Viatour.jpg',
+    ageRange: [1, 50],
+    priceRange: [1500, 10000],
+  },
+  {
+    breed: 'Lovebird',
+    sizes: ['TINY'],
+    colors: ['Green', 'Peach-faced', 'Blue', 'Lutino', 'Dutch Blue', 'Violet'],
+    temperaments: [
+      ['affectionate', 'social', 'playful'],
+      ['bold', 'curious', 'feisty'],
+      ['loyal', 'energetic', 'spirited'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Agapornis_roseicollis_-Marwell_Zoo%2C_Hampshire%2C_England-8a.jpg/1200px-Agapornis_roseicollis_-Marwell_Zoo%2C_Hampshire%2C_England-8a.jpg',
+    ageRange: [1, 15],
+    priceRange: [40, 200],
+  },
+  {
+    breed: 'Conure',
+    sizes: ['SMALL', 'MEDIUM'],
+    colors: ['Green Cheek', 'Sun Yellow', 'Jenday Orange', 'Pineapple', 'Turquoise'],
+    temperaments: [
+      ['playful', 'affectionate', 'vocal'],
+      ['social', 'clownish', 'cuddly'],
+      ['energetic', 'curious', 'fun_loving'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Aratinga_solstitialis_-pet-4.jpg/1200px-Aratinga_solstitialis_-pet-4.jpg',
+    ageRange: [1, 30],
+    priceRange: [200, 800],
+  },
+  {
+    breed: 'Parakeet',
+    sizes: ['TINY', 'SMALL'],
+    colors: ['Green', 'Blue', 'Yellow', 'White', 'Gray', 'Turquoise'],
+    temperaments: [
+      ['social', 'gentle', 'playful'],
+      ['cheerful', 'active', 'vocal'],
+      ['friendly', 'curious', 'energetic'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Melopsittacus_undulatus_-Fort_Worth_Zoo-8a-4c.jpg/1200px-Melopsittacus_undulatus_-Fort_Worth_Zoo-8a-4c.jpg',
+    ageRange: [1, 10],
+    priceRange: [20, 80],
+  },
+  {
+    breed: 'Finch',
+    sizes: ['TINY'],
+    colors: ['Red', 'Orange', 'White', 'Brown', 'Gray', 'Yellow'],
+    temperaments: [
+      ['social', 'active', 'cheerful'],
+      ['gentle', 'peaceful', 'musical'],
+      ['independent', 'lively', 'delightful'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/House_Finch_female_%2868059%29.jpg/1200px-House_Finch_female_%2868059%29.jpg',
+    ageRange: [1, 8],
+    priceRange: [10, 100],
+  },
+  {
+    breed: 'Canary',
+    sizes: ['TINY'],
+    colors: ['Yellow', 'Orange', 'Red', 'White', 'Green', 'Bronze'],
+    temperaments: [
+      ['melodious', 'cheerful', 'independent'],
+      ['gentle', 'peaceful', 'bright'],
+      ['lively', 'vocal', 'charming'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Serinus_canaria_-Parque_Rural_del_Nublo%2C_Gran_Canaria%2C_Spain_-male-8a.jpg/1200px-Serinus_canaria_-Parque_Rural_del_Nublo%2C_Gran_Canaria%2C_Spain_-male-8a.jpg',
+    ageRange: [1, 10],
+    priceRange: [25, 200],
+  },
+  {
+    breed: 'Amazon Parrot',
+    sizes: ['MEDIUM'],
+    colors: ['Green with Yellow Head', 'Green with Blue Crown', 'Green with Red Lore', 'Lilac-crowned'],
+    temperaments: [
+      ['vocal', 'intelligent', 'social'],
+      ['playful', 'loyal', 'spirited'],
+      ['entertaining', 'affectionate', 'bold'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Amazona_aestiva_-pet_in_a_cage-8a.jpg/1200px-Amazona_aestiva_-pet_in_a_cage-8a.jpg',
+    ageRange: [1, 50],
+    priceRange: [400, 3000],
+  },
+  {
+    breed: 'Eclectus Parrot',
+    sizes: ['MEDIUM', 'LARGE'],
+    colors: ['Green (Male)', 'Red and Blue (Female)', 'Emerald Green', 'Crimson Red'],
+    temperaments: [
+      ['calm', 'gentle', 'intelligent'],
+      ['quiet', 'affectionate', 'tranquil'],
+      ['charming', 'easygoing', 'social'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Eclectus_roratus-20030511.jpg/1200px-Eclectus_roratus-20030511.jpg',
+    ageRange: [1, 40],
+    priceRange: [600, 2500],
+  },
+  {
+    breed: 'Pionus Parrot',
+    sizes: ['MEDIUM'],
+    colors: ['Blue-headed', 'Bronze-winged', 'White-capped', 'Maximilian'],
+    temperaments: [
+      ['quiet', 'gentle', 'affectionate'],
+      ['sweet', 'easygoing', 'calm'],
+      ['loyal', 'independent', 'steady'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Blue-headed_Parrot_%28Pionus_menstruus%29_-6a.jpg/1200px-Blue-headed_Parrot_%28Pionus_menstruus%29_-6a.jpg',
+    ageRange: [1, 30],
+    priceRange: [400, 1500],
+  },
+  {
+    breed: 'Quaker Parrot',
+    sizes: ['SMALL'],
+    colors: ['Green', 'Blue', 'Lutino', 'Pallid', 'Cinnamon'],
+    temperaments: [
+      ['social', 'confident', 'talkative'],
+      ['playful', 'bold', 'intelligent'],
+      ['comical', 'affectionate', 'feisty'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Monk_Parakeet_%28Myiopsitta_monachus%29_pet_on_perch.jpg/1200px-Monk_Parakeet_%28Myiopsitta_monachus%29_pet_on_perch.jpg',
+    ageRange: [1, 25],
+    priceRange: [200, 700],
+  },
+  {
+    breed: 'Dove',
+    sizes: ['SMALL'],
+    colors: ['White', 'Gray', 'Pied', 'Tangerine', 'Silky'],
+    temperaments: [
+      ['gentle', 'peaceful', 'calm'],
+      ['quiet', 'sweet', 'docile'],
+      ['loving', 'easygoing', 'serene'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Ringneck_Dove_%28Streptopelia_risoria%29_pet.jpg/1200px-Ringneck_Dove_%28Streptopelia_risoria%29_pet.jpg',
+    ageRange: [1, 12],
+    priceRange: [20, 100],
+  },
+  {
+    breed: 'Senegal Parrot',
+    sizes: ['SMALL'],
+    colors: ['Green with Gray Head', 'Green with Yellow Vest', 'Orange-bellied'],
+    temperaments: [
+      ['quiet', 'calm', 'affectionate'],
+      ['playful', 'independent', 'loyal'],
+      ['gentle', 'entertaining', 'sweet'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Poicephalus_senegalus_-_Buffalo_Zoo_-8a.jpg/1200px-Poicephalus_senegalus_-_Buffalo_Zoo_-8a.jpg',
+    ageRange: [1, 30],
+    priceRange: [400, 1200],
+  },
+  {
+    breed: 'Indian Ringneck',
+    sizes: ['MEDIUM'],
+    colors: ['Green', 'Blue', 'Lutino', 'Albino', 'Turquoise', 'Violet'],
+    temperaments: [
+      ['intelligent', 'talkative', 'social'],
+      ['playful', 'curious', 'spirited'],
+      ['charming', 'independent', 'bold'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Psittacula_krameri_-_male_-_Killara_-_2.jpg/1200px-Psittacula_krameri_-_male_-_Killara_-_2.jpg',
+    ageRange: [1, 25],
+    priceRange: [300, 1500],
+  },
+  {
+    breed: 'Caique',
+    sizes: ['SMALL'],
+    colors: ['Black-headed', 'White-bellied', 'Green-thighed'],
+    temperaments: [
+      ['playful', 'energetic', 'clownish'],
+      ['bold', 'affectionate', 'spirited'],
+      ['fun_loving', 'active', 'entertaining'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Pionites_leucogaster_-pet-8a.jpg/1200px-Pionites_leucogaster_-pet-8a.jpg',
+    ageRange: [1, 30],
+    priceRange: [500, 2000],
+  },
+  {
+    breed: 'Parrotlet',
+    sizes: ['TINY'],
+    colors: ['Green', 'Blue', 'Yellow', 'Turquoise', 'Lutino', 'White'],
+    temperaments: [
+      ['bold', 'feisty', 'affectionate'],
+      ['curious', 'playful', 'spirited'],
+      ['loyal', 'intelligent', 'fearless'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Forpus_coelestis_-pet_on_finger-8a.jpg/1200px-Forpus_coelestis_-pet_on_finger-8a.jpg',
+    ageRange: [1, 20],
+    priceRange: [100, 400],
+  },
+  {
+    breed: 'Lorikeet',
+    sizes: ['SMALL', 'MEDIUM'],
+    colors: ['Rainbow', 'Red and Blue', 'Green with Red', 'Scaly-breasted'],
+    temperaments: [
+      ['playful', 'energetic', 'vocal'],
+      ['affectionate', 'clownish', 'social'],
+      ['active', 'curious', 'fun_loving'],
+    ],
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Rainbow_lorikeet.jpg/1200px-Rainbow_lorikeet.jpg',
+    ageRange: [1, 20],
+    priceRange: [400, 1500],
+  },
+];
+
+export const BIRD_NAMES = [
+  'Sunny', 'Kiwi', 'Mango', 'Sky', 'Rio', 'Coco', 'Blue', 'Phoenix',
+  'Pepper', 'Tweety', 'Piper', 'Angel', 'Skye', 'Lucky', 'Buddy', 'Charlie',
+  'Peaches', 'Berry', 'Jade', 'Jasper', 'Ruby', 'Pearl', 'Ginger', 'Ivy',
+  'Ziggy', 'Echo', 'Tiki', 'Zara', 'Peanut', 'Koda', 'Pablo', 'Lemon',
+  'Olive', 'Pickles', 'Noodle', 'Birdie', 'Clover', 'Sage', 'Wren', 'Cricket',
+  'Storm', 'Nico', 'Willow', 'Daisy', 'Biscuit', 'Maple', 'Sunny', 'Star',
+  'Merlin', 'Arrow', 'Fern', 'Basil', 'Cosmo', 'Indigo', 'Azul', 'Coral',
+  'Pip', 'Lotus', 'Ember', 'Flint', 'Misty', 'Blaze', 'Orion', 'Nimbus',
+];
+
+export const BIRD_DESCRIPTIONS = [
+  (name: string, breed: string, age: number) =>
+    `${name} is a beautiful ${age}-year-old ${breed} with vibrant plumage and a cheerful personality. Loves to sing and interact with people.`,
+  (name: string, breed: string, age: number) =>
+    `Meet ${name}, a delightful ${age}-year-old ${breed}. This feathered friend is hand-tamed and enjoys stepping up for treats and head scratches.`,
+  (name: string, breed: string, age: number) =>
+    `${name} is a charming ${age}-year-old ${breed} who brightens any room. Known for their playful antics and sweet vocalizations.`,
+  (name: string, breed: string, age: number) =>
+    `Say hello to ${name}! This ${age}-year-old ${breed} is healthy, well-socialized, and looking for a loving home where they can thrive.`,
+  (name: string, breed: string, age: number) =>
+    `${name} is an engaging ${age}-year-old ${breed} who loves interactive toys and learning new tricks. A wonderful companion bird.`,
+  (name: string, breed: string, age: number) =>
+    `Looking for an avian companion? ${name} is a friendly ${age}-year-old ${breed} who bonds closely with their caretaker and loves attention.`,
+  (name: string, breed: string, age: number) =>
+    `${name}, a gorgeous ${age}-year-old ${breed}, is ready to join your family. Known for being sociable, healthy, and full of personality.`,
+  (name: string, breed: string, age: number) =>
+    `This adorable ${age}-year-old ${breed} named ${name} will fill your home with joy and song. Hand-raised with excellent socialization.`,
+];

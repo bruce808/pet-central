@@ -63,6 +63,7 @@ export async function seedPets(
             microchipped: chipped,
           },
           adoptionOrSaleType: adoptionType,
+          dataSource: 'mock',
         },
       });
 
@@ -132,6 +133,7 @@ export async function seedPets(
           publishedAt: listingStatus === 'PUBLISHED' ? randomDate(90) : undefined,
           moderationStatus: listingStatus === 'PUBLISHED' ? 'APPROVED' : 'PENDING_MODERATION',
           trustRankSnapshot: randFloat(0.5, 1.0),
+          dataSource: 'mock',
         },
       });
       listingIds.push(listing.id);

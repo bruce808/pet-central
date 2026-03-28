@@ -1,4 +1,4 @@
-import type { AIInteractionLog, AIProviderName } from './types.ts';
+import type { AIInteractionLog, AIProviderName } from './types';
 
 export function createInteractionLog(params: {
   promptVersion: string;

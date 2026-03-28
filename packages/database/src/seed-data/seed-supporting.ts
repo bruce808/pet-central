@@ -20,6 +20,7 @@ export async function seedPartnerOrgs(prisma: PrismaClient, _userIds: string[]) 
         status: 'ACTIVE',
         contactInfoJson: { email: `contact@${slugify(p.name)}.example.com`, phone: '+15005550000' },
         capabilitiesJson: p.capabilities,
+        dataSource: 'mock',
       },
     });
     partnerOrgIds.push(po.id);
@@ -34,14 +35,15 @@ export async function seedPartnerOrgs(prisma: PrismaClient, _userIds: string[]) 
         originPartnerOrgId: poId,
         originDomain: `${slugify(partners[partnerOrgIds.indexOf(poId)].name)}.example.com`,
         status: 'ACTIVE',
+        dataSource: 'mock',
       },
     });
   }
   await prisma.channelOrigin.create({
-    data: { channelType: 'FIRST_PARTY_WEB', originDomain: 'petcentral.com', status: 'ACTIVE' },
+    data: { channelType: 'FIRST_PARTY_WEB', originDomain: 'petcentral.com', status: 'ACTIVE', dataSource: 'mock' },
   });
   await prisma.channelOrigin.create({
-    data: { channelType: 'KIOSK_TERMINAL', originLocationName: 'PetMart Downtown', originLocationAddress: '100 Main St, Portland, OR', status: 'ACTIVE' },
+    data: { channelType: 'KIOSK_TERMINAL', originLocationName: 'PetMart Downtown', originLocationAddress: '100 Main St, Portland, OR', status: 'ACTIVE', dataSource: 'mock' },
   });
   console.log(`  Created channel origins`);
 
@@ -75,6 +77,7 @@ export async function seedResources(prisma: PrismaClient, userIds: string[], org
         status: 'PUBLISHED_RESOURCE',
         tagsJson: r.tags,
         publishedAt: randomDate(180),
+        dataSource: 'mock',
       },
     });
   }
@@ -100,6 +103,7 @@ export async function seedCases(prisma: PrismaClient, userIds: string[], orgIds:
         region: pick(['US-West', 'US-East', 'US-South', 'US-Midwest']),
         assignedUserId: supportIds.length > 0 ? pick(supportIds) : adminId,
         createdByUserId: pick([adminId, ...supportIds]),
+        dataSource: 'mock',
         resolvedAt: status === 'RESOLVED' || status === 'CLOSED' ? randomDate(30) : undefined,
       },
     });
@@ -147,6 +151,7 @@ export async function seedAuditLogs(prisma: PrismaClient) {
         targetType: a.targetType,
         targetId: `seed-target-${randInt(1, 100)}`,
         metadataJson: { seeded: true, index: i },
+        dataSource: 'mock',
         createdAt: randomDate(365),
       },
     });

@@ -30,6 +30,7 @@ export async function seedOrganizations(prisma: PrismaClient, userIds: string[])
         longitude: o.longitude,
         serviceRadiusKm: randInt(25, 150),
         status: 'ACTIVE',
+        dataSource: 'mock',
       },
     });
     orgIds.push(org.id);

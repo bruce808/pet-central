@@ -4,6 +4,7 @@ import '@/globals.css';
 import { Providers } from './providers';
 import { VendorSidebar } from '@/components/VendorSidebar';
 import { VendorTopBar } from '@/components/VendorTopBar';
+import { VendorShell } from '@/components/VendorShell';
 
 export const metadata: Metadata = {
   title: 'PetCentral Vendor Portal',
@@ -16,13 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className="scroll-smooth">
       <body className="min-h-screen bg-surface-muted text-gray-900 antialiased">
         <Providers>
-          <div className="flex min-h-screen">
-            <VendorSidebar />
-            <div className="flex flex-1 flex-col pl-0 lg:pl-64">
-              <VendorTopBar />
-              <main className="flex-1 p-8">{children}</main>
-            </div>
-          </div>
+          <VendorShell>{children}</VendorShell>
         </Providers>
       </body>
     </html>

@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Providers } from './providers';
-import { PartnerSidebar } from '@/components/PartnerSidebar';
-import { PartnerTopBar } from '@/components/PartnerTopBar';
+import { PartnerShell } from '@/components/PartnerShell';
 import '@/globals.css';
 
 export const metadata: Metadata = {
@@ -15,11 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className="scroll-smooth">
       <body className="min-h-screen bg-surface-muted text-gray-900 antialiased">
         <Providers>
-          <PartnerSidebar />
-          <div className="md:pl-64">
-            <PartnerTopBar />
-            <main className="p-8">{children}</main>
-          </div>
+          <PartnerShell>{children}</PartnerShell>
         </Providers>
       </body>
     </html>

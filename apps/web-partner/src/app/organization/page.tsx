@@ -20,19 +20,7 @@ export default function OrganizationPage() {
   const query = useQuery({
     queryKey: ['partner', 'organization'],
     queryFn: organization.getProfile,
-    onSuccess: (data: Record<string, unknown>) => {
-      setForm({
-        publicName: String(data.publicName ?? ''),
-        partnerType: String(data.organizationType ?? ''),
-        region: String(data.region ?? ''),
-        contactEmail: String(data.contactEmail ?? ''),
-        contactPhone: String(data.contactPhone ?? ''),
-        capabilities: Array.isArray(data.capabilities)
-          ? data.capabilities.join(', ')
-          : String(data.capabilities ?? ''),
-      });
-    },
-  } as never);
+  });
 
   const updateMutation = useMutation({
     mutationFn: () =>

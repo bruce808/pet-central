@@ -1,9 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input, Textarea, Select, Button, LoadingSpinner } from '@pet-central/ui';
 import { organization } from '@/lib/api';
+
+function deriveForm(org: Record<string, unknown> | null | undefined) {
+  if (!org) {
+    return {
+      legalName: '',
+      publicName: '',
+      orgType: '',
+      description: '',
+      website: '',
+      phone: '',
+      email: '',
+      address: '',
+      city: '',
+      region: '',
+      postalCode: '',
+      country: '',
+      serviceRadius: '',
+    };
+  }
+  return {
+    legalName: (org.legalName as string) ?? '',
+    publicName: (org.publicName as string) ?? '',
+    orgType: (org.organizationType as string) ?? '',
+    description: (org.description as string) ?? '',
+    website: (org.website as string) ?? '',
+    phone: (org.phone as string) ?? '',
+    email: (org.email as string) ?? '',
+    address: (org.address as string) ?? '',
+    city: (org.city as string) ?? '',
+    region: (org.region as string) ?? '',
+    postalCode: (org.postalCode as string) ?? '',
+    country: (org.country as string) ?? '',
+    serviceRadius: String(org.serviceRadius ?? ''),
+  };
+}
 
 export default function OrganizationPage() {
   const queryClient = useQueryClient();
@@ -13,41 +48,8 @@ export default function OrganizationPage() {
     queryFn: organization.get,
   });
 
-  const [form, setForm] = useState({
-    legalName: '',
-    publicName: '',
-    orgType: '',
-    description: '',
-    website: '',
-    phone: '',
-    email: '',
-    address: '',
-    city: '',
-    region: '',
-    postalCode: '',
-    country: '',
-    serviceRadius: '',
-  });
-
-  useEffect(() => {
-    if (org) {
-      setForm({
-        legalName: org.legalName ?? '',
-        publicName: org.publicName ?? '',
-        orgType: org.organizationType ?? '',
-        description: org.description ?? '',
-        website: (org as unknown as Record<string, unknown>).website as string ?? '',
-        phone: org.phone ?? '',
-        email: org.email ?? '',
-        address: (org as unknown as Record<string, unknown>).address as string ?? '',
-        city: org.city ?? '',
-        region: org.region ?? '',
-        postalCode: (org as unknown as Record<string, unknown>).postalCode as string ?? '',
-        country: org.country ?? '',
-        serviceRadius: String((org as unknown as Record<string, unknown>).serviceRadius ?? ''),
-      });
-    }
-  }, [org]);
+  const initialForm = useMemo(() => deriveForm(org as unknown as Record<string, unknown>), [org]);
+  const [form, setForm] = useState(initialForm);
 
   const updateMutation = useMutation({
     mutationFn: () => {

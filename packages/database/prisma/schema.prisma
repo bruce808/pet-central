@@ -339,6 +339,8 @@ model User {
   updatedAt       DateTime   @updatedAt
   lastLoginAt     DateTime?
 
+  dataSource  String?
+
   profile             UserProfile?
   roles               UserRole[]
   sessions            Session[]
@@ -425,6 +427,7 @@ model Organization {
   longitude        Float?
   serviceRadiusKm  Int?
   status           OrgStatus @default(DRAFT)
+  dataSource       String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -525,6 +528,7 @@ model Pet {
   temperamentJson   Json?
   healthJson        Json?
   adoptionOrSaleType AdoptionOrSaleType
+  dataSource         String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -556,6 +560,7 @@ model PetListing {
   removedAt          DateTime?
   moderationStatus   ModerationStatus   @default(PENDING_MODERATION)
   trustRankSnapshot  Float?
+  dataSource         String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -598,10 +603,11 @@ model PetAttribute {
 }
 
 model Favorite {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  listingId String   @db.Uuid
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  listingId  String   @db.Uuid
+  dataSource String?
+  createdAt  DateTime @default(now())
 
   user    User       @relation(fields: [userId], references: [id])
   listing PetListing @relation(fields: [listingId], references: [id])
@@ -616,6 +622,7 @@ model Interaction {
   listingId         String?         @db.Uuid
   conversationId    String?         @db.Uuid
   interactionType   InteractionType
+  dataSource        String?
   occurredAt        DateTime        @default(now())
   verificationLevel Int             @default(0)
 
@@ -641,6 +648,7 @@ model Review {
   visibilityScope      VisibilityScope     @default(PUBLIC)
   moderationStatus     ModerationStatus    @default(PENDING_MODERATION)
   disputeStatus        DisputeStatus       @default(NONE)
+  dataSource           String?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 
@@ -684,6 +692,7 @@ model Conversation {
   listingId        String?          @db.Uuid
   organizationId   String?          @db.Uuid
   createdByUserId  String           @db.Uuid
+  dataSource       String?
   createdAt        DateTime         @default(now())
 
   listing      PetListing?               @relation(fields: [listingId], references: [id])
@@ -719,6 +728,7 @@ model Message {
   messageType      MessageType      @default(TEXT)
   moderationStatus ModerationStatus @default(PENDING_MODERATION)
   riskScore        Float            @default(0)
+  dataSource       String?
   createdAt        DateTime         @default(now())
 
   conversation Conversation       @relation(fields: [conversationId], references: [id])
@@ -755,6 +765,7 @@ model Case {
   assignedUserId      String?      @db.Uuid
   assignedPartnerOrgId String?     @db.Uuid
   createdByUserId     String       @db.Uuid
+  dataSource          String?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
   resolvedAt          DateTime?
@@ -809,6 +820,7 @@ model PartnerOrganization {
   contactInfoJson   Json?
   status            OrgStatus   @default(DRAFT)
   capabilitiesJson  Json?
+  dataSource        String?
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -861,6 +873,7 @@ model Resource {
   bodyMarkdown   String
   status         ResourceStatus @default(DRAFT_RESOURCE)
   tagsJson       Json?
+  dataSource     String?
   publishedAt    DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -936,6 +949,7 @@ model ChannelOrigin {
   originLocationAddress  String?
   attributionRulesJson   Json?
   status                 OrgStatus   @default(ACTIVE)
+  dataSource             String?
   createdAt              DateTime    @default(now())
 
   originPartnerOrg PartnerOrganization? @relation(fields: [originPartnerOrgId], references: [id])
@@ -972,6 +986,7 @@ model AuditLog {
   targetType   String
   targetId     String
   metadataJson Json?
+  dataSource   String?
   createdAt    DateTime       @default(now())
 
   @@index([actorType, actorId])

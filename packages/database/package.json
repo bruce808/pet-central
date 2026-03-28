@@ -9,6 +9,7 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx src/seed.ts",
+    "db:purge": "tsx src/purge-mock-data.ts",
     "db:studio": "prisma studio",
     "lint": "eslint src/",
     "clean": "rm -rf dist .turbo src/generated"

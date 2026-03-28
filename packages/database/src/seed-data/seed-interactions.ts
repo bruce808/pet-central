@@ -14,7 +14,7 @@ export async function seedInteractionsAndReviews(
   for (let i = 0; i < 200; i++) {
     try {
       await prisma.favorite.create({
-        data: { userId: pick(consumerIds), listingId: pick(listingIds) },
+        data: { userId: pick(consumerIds), listingId: pick(listingIds), dataSource: 'mock' },
       });
       favCount++;
     } catch { /* duplicate */ }
@@ -31,6 +31,7 @@ export async function seedInteractionsAndReviews(
         listingId: Math.random() > 0.3 ? pick(listingIds) : undefined,
         interactionType: pick(['INQUIRY', 'INQUIRY', 'VISIT', 'APPLICATION', 'ADOPTION', 'PURCHASE']),
         occurredAt: randomDate(180),
+        dataSource: 'mock',
       },
     });
   }
@@ -71,6 +72,7 @@ export async function seedInteractionsAndReviews(
         reviewText: pick(reviewTexts),
         visibilityScope: 'PUBLIC',
         moderationStatus: 'APPROVED',
+        dataSource: 'mock',
         createdAt: randomDate(365),
       },
     });
@@ -107,6 +109,7 @@ export async function seedConversations(
         listingId: Math.random() > 0.2 ? pick(listingIds) : undefined,
         organizationId: orgId,
         createdByUserId: userId,
+        dataSource: 'mock',
       },
     });
 
@@ -128,6 +131,7 @@ export async function seedConversations(
           bodyText: messages[m % messages.length],
           messageType: 'TEXT',
           moderationStatus: 'APPROVED',
+          dataSource: 'mock',
           createdAt: new Date(Date.now() - (numMsgs - m) * 3600000 * randInt(1, 24)),
         },
       });

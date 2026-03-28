@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import '@/globals.css';
 import { Providers } from './providers';
-import { AdminSidebar } from '@/components/AdminSidebar';
-import { AdminTopBar } from '@/components/AdminTopBar';
+import { AdminShell } from '@/components/AdminShell';
 
 export const metadata: Metadata = {
   title: 'PetCentral Admin',
@@ -18,11 +17,7 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <body className="min-h-screen bg-surface-muted text-gray-900 antialiased">
         <Providers>
-          <AdminSidebar />
-          <div className="md:pl-64">
-            <AdminTopBar />
-            <main className="p-8">{children}</main>
-          </div>
+          <AdminShell>{children}</AdminShell>
         </Providers>
       </body>
     </html>

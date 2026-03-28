@@ -175,12 +175,19 @@ export class AnimalExtractorService {
       declawed: this.detectBoolField(combinedText, /\bdeclawed\b/i),
       adoptionStatus: this.n2u(this.detectAdoptionStatus(combinedText)),
       specialNeeds: this.n2u(this.extractSpecialNeeds(combinedText)),
-      locationCity: location?.city,
-      locationState: location?.state,
       adoptionRequirements: requirements,
       attributeJson: requirements.length > 0 ? { adoptionRequirements: requirements } : undefined,
       confidence: this.computeConfidence(name, animalType, breed, photoUrls, description),
     };
+
+    let fieldCount = 0;
+    if (candidate.breed) fieldCount++;
+    if (candidate.animalType) fieldCount++;
+    if (candidate.ageText) fieldCount++;
+    if (candidate.sex) fieldCount++;
+    if (candidate.description && candidate.description.length > 30) fieldCount++;
+    if (candidate.photoUrls.length > 0) fieldCount++;
+    if (fieldCount < 2) return null;
 
     return candidate;
   }
@@ -324,11 +331,24 @@ export class AnimalExtractorService {
     if (/^[\w-]+\.\w{2,4}$/.test(c.name)) return false;
     if (!/[a-zA-Z]{2,}/.test(c.name)) return false;
     if (c.name.split(' ').length > 4) return false;
+    if (/^\d+$/.test(c.name)) return false;
+
+    let detailScore = 0;
+    if (c.breed) detailScore++;
+    if (c.animalType) detailScore++;
+    if (c.ageText) detailScore++;
+    if (c.sex) detailScore++;
+    if (c.photoUrls.length > 0) detailScore++;
+    if (c.listingUrl) detailScore++;
+    if (c.description && c.description.length > 30) detailScore++;
+    if (detailScore < 1) return false;
+
     return true;
   }
 
   private isBlockedName(name: string): boolean {
-    return /\b(adopt(ion|able)?|volunteer|donat(e|ion)|learn|about|contact|footer|header|nav(igation)?|home|menu|search|login|register|sign.?up|spay|neuter|give\s*up|lost\s*[&a]|found\s*(pet|animal)|get\s*involved|program|event|news|blog|store|shop|cart|hours|location|map|direction|team|staff|board|career|job|intern|media|press|newsletter|subscribe|forms?|calendar|schedule|clinic|surgery|vaccine|micro.?chip|license|permit|report|surrender|intake|return|transfer|transport|resources?|services?|polic(y|ies)|terms|privacy|sitemap|gallery|support|help|faq|question|feedback|testimonial|review|foster|rehom(e|ing)|available\s*(dogs|cats|pets|animals)|special\s*needs|in\s*training|featured|our\s*(mission|story|team|staff|history|sponsors?)|ways?\s*to|how\s*to|what\s*is|why\s*(choose|adopt)|reduce\s*stress|increase\s*self|emotional\s*fulfillment|provides?\s*emotional|other\s*available|making\s*a\s*difference|saving\s*lives?|join\s*(us|our)|become\s*a|start\s*(your|here)|explore|discover|view\s*all|see\s*all|browse|more\s*info|read\s*more|learn\s*more|click\s*here|apply\s*now|submit|send|share|print|download|upload|subscribe|unsubscribe|copyright|all\s*rights|powered\s*by|find\s*your|perfect\s*match|requirements|sponsors?|partners?|supporters?|donors?|wishlist|wish\s*list)\b/i.test(name);
+    return /\b(adopt(ion|able)?|volunteer|donat(e|ion)|learn|about|contact|footer|header|nav(igation)?|home|menu|search|login|register|sign.?up|spay|neuter|give\s*up|lost\s*[&a]|found\s*(pet|animal)|get\s*involved|program|event|news|blog|store|shop|cart|hours|location|map|direction|team|staff|board|career|job|intern|media|press|newsletter|subscribe|forms?|calendar|schedule|clinic|surgery|vaccine|micro.?chip|license|permit|report|surrender|intake|return|transfer|transport|resources?|services?|polic(y|ies)|terms|privacy|sitemap|gallery|support|help|faq|question|feedback|testimonial|review|foster|rehom(e|ing)|available\s*(dogs|cats|pets|animals)|special\s*needs|in\s*training|featured|our\s*(mission|story|team|staff|history|sponsors?)|ways?\s*to|how\s*to|what\s*is|why\s*(choose|adopt)|reduce\s*stress|increase\s*self|emotional\s*fulfillment|provides?\s*emotional|other\s*available|making\s*a\s*difference|saving\s*lives?|join\s*(us|our)|become\s*a|start\s*(your|here)|explore|discover|view\s*all|see\s*all|browse|more\s*info|read\s*more|learn\s*more|click\s*here|apply\s*now|submit|send|share|print|download|upload|subscribe|unsubscribe|copyright|all\s*rights|powered\s*by|find\s*your|perfect\s*match|requirements|sponsors?|partners?|supporters?|donors?|wishlist|wish\s*list|filter\s*by|sort\s*by|show\s*results|in\s+\d{4}|since\s+\d{4}|lives?\s*saved|adoptions?|pets?\s*alive|humane\s*society|animal\s*shelter|rescue\s*league|spca)\b/i.test(name) ||
+      /[.!?]$/.test(name.trim());
   }
 
   private extractAnimalName(html: string): string | null {
@@ -361,7 +381,7 @@ export class AnimalExtractorService {
         .filter(p => !/^\s*-\s/.test(p))
         .filter(p => (p.match(/^\s*-/gm) || []).length < 3)
         .filter(p => /\b(dog|cat|pet|animal|adopt|love|play|friendly|sweet|gentle|energetic|loyal|companion|family|home|cuddle|walk|personality|temperament|loves?|enjoy|favorite|training|behavior|needs?|he\b|she\b|his\b|her\b)\b/i.test(p));
-      if (mdParagraphs.length > 0) return mdParagraphs.join('\n\n').slice(0, 1000);
+      if (mdParagraphs.length > 0) return mdParagraphs.join('\n\n').slice(0, 5000);
     }
 
     const ogDesc = this.metaContent(html, 'og:description', 'property');
@@ -372,7 +392,7 @@ export class AnimalExtractorService {
     const mainContent = html.match(/<(?:main|article|div[^>]+class="[^"]*(?:content|description|bio|about|detail|profile|pet-info|animal-info)[^"]*")[^>]*>([\s\S]*?)<\/(?:main|article|div)>/i);
     if (mainContent) {
       const text = this.stripTags(mainContent[1]!).trim();
-      if (text.length > 30 && text.length < 3000) return text.slice(0, 1000);
+      if (text.length > 30 && text.length < 10000) return text.slice(0, 5000);
     }
 
     const pTags = html.match(/<p[^>]*>[^<]{20,}<\/p>/gi);
@@ -380,7 +400,7 @@ export class AnimalExtractorService {
       const filtered = pTags
         .map(p => this.stripTags(p).trim())
         .filter(t => /\b(dog|cat|pet|animal|adopt|love|play|friendly|sweet|gentle|energetic|loyal|companion)\b/i.test(t));
-      if (filtered.length > 0) return filtered.join(' ').slice(0, 1000);
+      if (filtered.length > 0) return filtered.join(' ').slice(0, 5000);
     }
 
     return null;
@@ -388,22 +408,69 @@ export class AnimalExtractorService {
 
   private extractAnimalPhotos(html: string, sourceUrl: string): string[] {
     const photos: string[] = [];
+    const seen = new Set<string>();
+
+    const addPhoto = (url: string) => {
+      const full = this.resolveUrl(url, sourceUrl);
+      if (seen.has(full)) return;
+      if (/logo|icon|sprite|badge|button|pixel|tracking|avatar|banner|header|footer|social|favicon|spacer|placeholder|blank|transparent/i.test(full)) return;
+      if (/\.(svg|gif|ico)(\?|$)/i.test(full)) return;
+      if (/\/assets\/(icons|ui|layout)\//i.test(full)) return;
+      seen.add(full);
+      photos.push(full);
+    };
 
     const ogImage = this.metaContent(html, 'og:image', 'property');
-    if (ogImage) photos.push(this.resolveUrl(ogImage, sourceUrl));
+    if (ogImage) addPhoto(ogImage);
 
-    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    const imgRegex = /<img[^>]*>/gi;
     let m;
     while ((m = imgRegex.exec(html)) !== null) {
-      const src = m[1]!;
-      if (/logo|icon|sprite|badge|button|pixel|tracking|avatar|banner|header|footer|social/i.test(src + m[0])) continue;
-      if (/\.(svg|gif|ico)(\?|$)/i.test(src)) continue;
+      const tag = m[0];
+      const src = (tag.match(/src=["']([^"']+)["']/i) || [])[1];
+      const dataSrc = (tag.match(/data-(?:src|lazy|original|full|zoom|large)=["']([^"']+)["']/i) || [])[1];
+      const srcset = (tag.match(/srcset=["']([^"']+)["']/i) || [])[1];
 
-      const fullUrl = this.resolveUrl(src, sourceUrl);
-      if (!photos.includes(fullUrl)) photos.push(fullUrl);
+      if (dataSrc) addPhoto(dataSrc);
+      if (src) addPhoto(src);
+      if (srcset) {
+        const largest = srcset.split(',').map(s => s.trim().split(/\s+/)[0]!).pop();
+        if (largest) addPhoto(largest);
+      }
     }
 
-    return photos.slice(0, 10);
+    const bgRegex = /(?:background(?:-image)?)\s*:\s*url\(\s*["']?([^"')]+)["']?\s*\)/gi;
+    while ((m = bgRegex.exec(html)) !== null) {
+      if (m[1]) addPhoto(m[1]);
+    }
+
+    const carouselRegex = /<(?:div|li|a|figure)[^>]*class="[^"]*(?:slide|carousel-item|gallery-item|swiper-slide|slick-slide|glide__slide|splide__slide|lightbox|photo-item)[^"]*"[^>]*>[\s\S]*?<\/(?:div|li|a|figure)>/gi;
+    while ((m = carouselRegex.exec(html)) !== null) {
+      const slideHtml = m[0];
+      const slideImgs = slideHtml.matchAll(/<img[^>]*(?:src|data-src|data-lazy)=["']([^"']+)["'][^>]*>/gi);
+      for (const si of slideImgs) {
+        if (si[1]) addPhoto(si[1]);
+      }
+    }
+
+    const sourceRegex = /<source[^>]+srcset=["']([^"']+)["']/gi;
+    while ((m = sourceRegex.exec(html)) !== null) {
+      const largest = m[1]!.split(',').map(s => s.trim().split(/\s+/)[0]!).pop();
+      if (largest) addPhoto(largest);
+    }
+
+    const dataGallery = html.match(/data-(?:images|gallery|photos)=["'](\[[\s\S]*?\])["']/i);
+    if (dataGallery) {
+      try {
+        const urls = JSON.parse(dataGallery[1]!) as (string | { url?: string; src?: string })[];
+        for (const item of urls) {
+          const url = typeof item === 'string' ? item : (item.url ?? item.src);
+          if (url) addPhoto(url);
+        }
+      } catch {}
+    }
+
+    return photos.slice(0, 30);
   }
 
   private inferAnimalType(text: string): string | null {
@@ -581,8 +648,10 @@ export class AnimalExtractorService {
   private extractLocation(text: string): { city?: string; state?: string } | null {
     const labeled = text.match(/\blocation\s*[:]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s*,\s*([A-Z]{2})\b/);
     if (labeled) return { city: labeled[1]!.trim(), state: labeled[2]!.trim() };
-    const cityState = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s*,\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/);
-    if (cityState) return { city: cityState[1]!.trim(), state: cityState[2]!.trim() };
+
+    const locField = text.match(/\b(?:located?\s*(?:in|at)|based\s*in|serving)\s*[:]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s*,\s*([A-Z]{2})\b/);
+    if (locField) return { city: locField[1]!.trim(), state: locField[2]!.trim() };
+
     return null;
   }
 

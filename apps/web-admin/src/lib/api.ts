@@ -207,3 +207,113 @@ export const auth = {
   logout: () =>
     apiFetch<void>('/admin/auth/logout', { method: 'POST' }),
 };
+
+const SCAN_API_URL =
+  process.env.NEXT_PUBLIC_SCAN_API_URL || 'http://localhost:5200/api/v1/scan';
+
+async function scanFetch<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const res = await fetch(`${SCAN_API_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.message || res.statusText);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+export const scanWebsites = {
+  list: (params: Record<string, unknown> = {}) =>
+    scanFetch<{ data: Record<string, unknown>[]; meta: Record<string, number> }>(
+      `/websites${qs(params)}`,
+    ),
+  getById: (id: string) =>
+    scanFetch<Record<string, unknown>>(`/websites/${id}`),
+  create: (data: { domain: string; baseUrl: string; sourceType: string; organizationHint?: string }) =>
+    scanFetch<Record<string, unknown>>('/websites', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Record<string, unknown>) =>
+    scanFetch<Record<string, unknown>>(`/websites/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  getScans: (id: string, params: Record<string, unknown> = {}) =>
+    scanFetch<{ data: Record<string, unknown>[]; meta: Record<string, number> }>(
+      `/websites/${id}/scans${qs(params)}`,
+    ),
+};
+
+export const scans = {
+  list: (params: Record<string, unknown> = {}) =>
+    scanFetch<{ data: Record<string, unknown>[]; meta: Record<string, number> }>(
+      `/scans${qs(params)}`,
+    ),
+  getById: (id: string) =>
+    scanFetch<Record<string, unknown>>(`/scans/${id}`),
+  start: (data: { websiteId: string; sync?: boolean; scanType?: string }) =>
+    scanFetch<Record<string, unknown>>('/scans', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getStatistics: (id: string) =>
+    scanFetch<Record<string, unknown>>(`/scans/${id}/statistics`),
+  getPages: (id: string, params: Record<string, unknown> = {}) =>
+    scanFetch<{ data: Record<string, unknown>[]; meta: Record<string, number> }>(
+      `/scans/${id}/pages${qs(params)}`,
+    ),
+  getEntities: (id: string) =>
+    scanFetch<Record<string, unknown>[]>(`/scans/${id}/entities`),
+  getAnimalListings: (id: string, params: Record<string, unknown> = {}) =>
+    scanFetch<{ data: Record<string, unknown>[]; meta: Record<string, number> }>(
+      `/scans/${id}/animal-listings${qs(params)}`,
+    ),
+};
+
+export const scanPages = {
+  getById: (id: string) =>
+    scanFetch<Record<string, unknown>>(`/pages/${id}`),
+  getMarkdown: (id: string) =>
+    scanFetch<{ scanPageId: string; markdownContent: string }>(`/pages/${id}/markdown`),
+};
+
+export const scanAnimals = {
+  getById: (id: string) =>
+    scanFetch<Record<string, unknown>>(`/animals/${id}`),
+};
+
+export const scanQuality = {
+  getChecks: (scanId: string) =>
+    scanFetch<Record<string, unknown>[]>(`/quality-checks/scan/${scanId}`),
+  getSummary: (scanId: string) =>
+    scanFetch<Record<string, unknown>>(`/quality-checks/scan/${scanId}/summary`),
+  runChecks: (scanId: string) =>
+    scanFetch<Record<string, unknown>[]>(`/quality-checks/scan/${scanId}/run`, {
+      method: 'POST',
+    }),
+};
+
+export const scanPromotion = {
+  promote: (scanId: string, data?: { approvedBy?: string; notes?: string }) =>
+    scanFetch<Record<string, unknown>>(`/promotion/scan/${scanId}`, {
+      method: 'POST',
+      body: JSON.stringify(data ?? {}),
+    }),
+  listBatches: (params: Record<string, unknown> = {}) =>
+    scanFetch<{ data: Record<string, unknown>[]; meta: Record<string, number> }>(
+      `/promotion/batches${qs(params)}`,
+    ),
+  getBatchResults: (id: string) =>
+    scanFetch<Record<string, unknown>[]>(`/promotion/batches/${id}/results`),
+};

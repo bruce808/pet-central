@@ -7,7 +7,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../common/prisma.service';
-import { ListingStatus, ModerationStatus, Prisma } from '@pet-central/database';
+import { ListingStatus, ModerationStatus, PetType, Prisma } from '@pet-central/database';
 
 @Injectable()
 export class ListingsService {
@@ -280,7 +280,7 @@ export class ListingsService {
     };
 
     if (query.petType) {
-      where.pet = { petType: query.petType };
+      where.pet = { petType: query.petType.toUpperCase() as PetType };
     }
 
     if (query.availabilityStatus) {

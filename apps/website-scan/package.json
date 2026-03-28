@@ -1,0 +1,42 @@
+{
+  "name": "@pet-central/website-scan",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "env $(cat ../../.env | grep -v '^#' | grep -v '^$' | xargs) ts-node --swc -r reflect-metadata src/main.ts",
+    "build": "nest build",
+    "start": "node dist/main",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@nestjs/bullmq": "^11.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/schedule": "^5.0.0",
+    "@pet-central/database": "workspace:*",
+    "@pet-central/types": "workspace:*",
+    "@prisma/client": "^6.4.0",
+    "bullmq": "^5.30.0",
+    "cheerio": "^1.0.0",
+    "class-transformer": "^0.5.0",
+    "class-validator": "^0.14.0",
+    "ioredis": "^5.4.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.0",
+    "turndown": "^7.2.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@swc/cli": "^0.8.0",
+    "@swc/core": "^1.15.21",
+    "@swc/register": "^0.1.10",
+    "@types/express": "^5.0.0",
+    "@types/turndown": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

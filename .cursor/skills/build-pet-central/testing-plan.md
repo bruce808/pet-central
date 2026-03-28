@@ -184,112 +184,57 @@ Check that each service starts without crash:
 
 If any service crashes on startup, fix the root cause and restart.
 
-## Step 9: Live Browser Validation — Every Page, Every App
+## Step 9: Automated E2E Browser Testing — Every Page, Every App
 
-**This is critical.** After the system is running, use the `browser-use` subagent to visit every page in every app and verify it actually loads and renders correctly in a real browser. Build passing is not enough — pages must render without client-side errors, blank screens, or broken layouts.
+**This is critical.** After the system is running, use the automated Playwright E2E test suite to verify every page loads and every interactive element works.
+
+See **[e2e-test-plan.md](e2e-test-plan.md)** for the complete automated test plan with ~205 tests across all 5 web apps.
 
 ### How to execute
 
-Use the `browser-use` Task subagent for each app. Start apps one at a time if needed to avoid port conflicts, or run them all via `pnpm dev`.
+```bash
+# Run all E2E tests (starts dev servers automatically)
+pnpm test:e2e
 
-### 9a. web-consumer (http://localhost:5001)
+# Run one app at a time
+npx playwright test --project=consumer
+npx playwright test --project=vendor
+npx playwright test --project=admin
+npx playwright test --project=partner
+npx playwright test --project=kiosk
 
-Visit every page and verify it renders meaningful content (not a blank screen, not an unhandled error, not a raw stack trace):
+# Run responsive tests
+npx playwright test --project=consumer-mobile
+npx playwright test --project=consumer-tablet
 
-| Route | What to verify |
-|---|---|
-| `/` | Homepage loads — hero section, featured listings/pets, navigation, footer |
-| `/search` | Search page loads — filter sidebar or controls, results area (empty state OK if no data) |
-| `/listings/[id]` | Pick any valid listing ID or verify the dynamic route handles a test ID gracefully (404 page or empty state, not a crash) |
-| `/organizations/[id]` | Organization detail page loads or shows a clean empty/not-found state |
-| `/auth/login` | Login form renders — email and password fields, submit button |
-| `/auth/register` | Registration form renders — all required fields present |
-| `/auth/verify-email` | Verify email page renders with appropriate messaging |
-| `/favorites` | Favorites page loads (empty state if not logged in or no favorites) |
-| `/messages` | Messages page loads (empty state or auth redirect) |
-| `/settings` | Settings page loads (auth redirect or form fields) |
-| `/resources` | Resources listing page loads |
-| `/resources/[slug]` | Individual resource page loads or shows clean not-found |
-| `/ai-assistant` | AI assistant page loads with chat interface or placeholder |
+# Debug failures interactively
+pnpm test:e2e:ui
+```
 
-**For each page, check:**
-1. No white/blank screen
-2. No JavaScript console errors (uncaught exceptions, hydration mismatches)
-3. Navigation header/footer renders consistently
-4. Page-specific content area renders (even if showing empty states due to no seed data)
-5. No broken images (missing src, 404 image URLs)
-6. Interactive elements are visible (buttons, links, form inputs)
+The E2E suite covers:
+- **Every page route** in all 5 apps (50+ pages)
+- **Every interactive element**: buttons, form fields, selects, checkboxes, sliders, tabs, modals, drag-drop zones
+- **Multi-step wizards**: vendor registration, listing creation, kiosk discovery
+- **Navigation**: sidebar links, breadcrumbs, back/forward, category pills
+- **Responsive layout**: mobile (375px), tablet (768px), desktop (1440px)
+- **Error states**: 404 pages, invalid IDs, blank screen detection
+- **Form validation**: required fields, password matching, empty submits
 
-### 9b. web-vendor (http://localhost:5002)
+### Correction loop for E2E failures
 
-| Route | What to verify |
-|---|---|
-| `/` | Vendor dashboard loads — summary stats or welcome state |
-| `/auth/login` | Vendor login form renders |
-| `/auth/register` | Vendor registration form renders |
-| `/listings` | Listings management page loads — table or card grid, create button |
-| `/listings/new` | New listing form renders — all pet detail fields |
-| `/listings/[id]/edit` | Edit listing form renders or shows not-found for invalid ID |
-| `/messages` | Vendor messages page loads |
-| `/organization` | Organization profile page loads |
-| `/organization/documents` | Documents upload/management page loads |
-| `/organization/members` | Team members page loads |
-| `/reviews` | Reviews page loads — list of reviews or empty state |
-| `/analytics` | Analytics dashboard loads — charts or placeholder |
-| `/resources` | Vendor resources page loads |
+### Correction loop for E2E failures
 
-### 9c. web-admin (http://localhost:5003)
+When a test fails:
 
-| Route | What to verify |
-|---|---|
-| `/` | Admin dashboard loads — key metrics, recent activity |
-| `/auth/login` | Admin login form renders |
-| `/users` | Users management table loads |
-| `/organizations` | Organizations list/table loads |
-| `/organizations/[id]` | Organization detail view loads or clean not-found |
-| `/moderation` | Moderation queue page loads |
-| `/cases` | Cases list page loads |
-| `/cases/[id]` | Case detail page loads or clean not-found |
-| `/partners` | Partners management page loads |
-| `/audit-log` | Audit log page loads — table with filters |
-| `/ai/discovery` | AI discovery page loads |
-| `/ai/correspondence` | AI correspondence page loads |
+1. **Check the Playwright HTML report** — `npx playwright show-report`
+2. **Check screenshots** — in `test-results/` for visual failures
+3. **Check traces** — step-by-step replay of what happened
+4. **Identify the broken component** — trace the error to the specific component/import
+5. **Fix the application code** — resolve the issue at the source (not by modifying the test, unless the selector is wrong)
+6. **Re-run the failing test** — `npx playwright test --grep "test name"`
+7. **Re-run the full suite** — to catch regressions
 
-### 9d. web-partner (http://localhost:5004)
-
-| Route | What to verify |
-|---|---|
-| `/` | Partner dashboard loads |
-| `/auth/login` | Partner login form renders |
-| `/cases` | Assigned cases list loads |
-| `/cases/[id]` | Case detail page loads or clean not-found |
-| `/validations` | Validation tasks page loads |
-| `/validations/[id]` | Validation detail page loads or clean not-found |
-| `/members` | Organization members page loads |
-| `/organization` | Partner organization profile loads |
-
-### 9e. web-kiosk (http://localhost:5005)
-
-| Route | What to verify |
-|---|---|
-| `/` | Kiosk home screen loads — touch-friendly UI, prominent CTAs |
-| `/discover` | Pet discovery/browse page loads |
-| `/listings/[id]` | Pet detail page loads or clean not-found |
-| `/ai-guide` | AI guide interface loads |
-| `/handoff` | Handoff/contact page loads |
-
-### Correction loop for browser issues
-
-When a page fails browser validation:
-
-1. **Check the terminal** — look for server-side compilation errors or runtime exceptions
-2. **Check the browser console** — look for client-side JS errors, hydration mismatches, failed fetches
-3. **Identify the broken component** — trace the error to the specific component/import
-4. **Fix the code** — resolve the issue at the source
-5. **Reload the page** — verify the fix renders correctly
-6. **Re-check neighboring pages** — the fix may affect shared layouts or components
-
-**Common browser-time failures and fixes:**
+**Common E2E failures and fixes:**
 - **Hydration mismatch** → ensure server and client render the same initial HTML; move browser-only APIs behind `useEffect` or `typeof window` checks
 - **Module not found at runtime** → a package isn't properly exported or built; rebuild the dependency
 - **"use client" missing** → component uses hooks/event handlers but isn't marked as a client component
@@ -297,41 +242,11 @@ When a page fails browser validation:
 - **TanStack Query errors** → ensure `QueryClientProvider` wraps the app in the root layout
 - **Broken images/assets** → check that image paths are correct and public directory has required assets
 - **Layout shift / completely unstyled** → Tailwind CSS not loading; check PostCSS config and Tailwind content paths
+- **Element not found** → selector may need updating if component structure changed; update the test selector
 
-## Step 10: Functional Interaction Testing
+## Step 10: (Covered by automated E2E tests above)
 
-Beyond page loads, verify that key interactive flows actually work. Use the `browser-use` subagent to perform these actions:
-
-### Authentication flows
-- [ ] Consumer: fill and submit registration form — form validates, submits, shows success or redirects
-- [ ] Consumer: fill and submit login form — form validates, submits, session established or error shown
-- [ ] Vendor: fill and submit registration form
-- [ ] Vendor: fill and submit login form
-- [ ] Admin: fill and submit login form
-- [ ] Partner: fill and submit login form
-
-### Navigation & routing
-- [ ] Consumer: click navigation links — each nav item routes to the correct page without error
-- [ ] Consumer: click a pet listing card from search results — navigates to listing detail page
-- [ ] Consumer: use back/forward browser navigation — pages don't crash or show stale content
-- [ ] Vendor: navigate between dashboard sections via sidebar/nav
-- [ ] Admin: navigate between all admin sections
-- [ ] Kiosk: navigate the touch-friendly flow from home → discover → listing detail → handoff
-
-### Forms & inputs
-- [ ] Vendor: open new listing form, fill out fields, verify client-side validation works (required fields, format validation)
-- [ ] Consumer: use search filters — changing filters updates the results area (or shows loading/empty state)
-- [ ] Consumer: test the favorites toggle (heart icon or similar) — button responds to click
-- [ ] Admin: interact with data tables — sorting, filtering, pagination controls respond
-
-### Responsive layout
-- [ ] Consumer homepage at mobile width (375px) — no horizontal scroll, readable text, tappable buttons
-- [ ] Consumer homepage at tablet width (768px) — layout adapts, no overflow
-- [ ] Consumer homepage at desktop width (1440px) — full layout with sidebars/multi-column where expected
-
-### Error states
-- [ ] Visit a non-existent route (e.g., `/this-does-not-exist`) on each app — should show a 404 page or redirect, not crash
-- [ ] Visit a dynamic route with an invalid ID (e.g., `/listings/nonexistent-id`) — should show not-found or empty state, not a stack trace
+The functional interaction tests (auth flows, navigation, forms, responsive layout, error states) are all included in the automated Playwright E2E suite. See [e2e-test-plan.md](e2e-test-plan.md) for the complete test inventory.
 
 ## Step 11: Shared UI Component Audit
 
@@ -404,20 +319,16 @@ Use todos to track testing progress. Example structure:
 - [ ] Step 6: Package-level validation
 - [ ] Step 7: Cross-workspace imports
 - [ ] Step 8: Runtime startup — all services boot cleanly
-- [ ] Step 9: Browser validation — every page in every app loads
-  - [ ] 9a: web-consumer (13 pages)
-  - [ ] 9b: web-vendor (13 pages)
-  - [ ] 9c: web-admin (12 pages)
-  - [ ] 9d: web-partner (8 pages)
-  - [ ] 9e: web-kiosk (5 pages)
-- [ ] Step 10: Functional interaction testing
-  - [ ] Authentication flows
-  - [ ] Navigation & routing
-  - [ ] Forms & inputs
-  - [ ] Responsive layout
-  - [ ] Error states
+- [ ] Step 9: Automated E2E tests (Playwright) — ~205 tests across all apps
+  - [ ] consumer: 65 tests (12 spec files)
+  - [ ] vendor: 45 tests (9 spec files)
+  - [ ] admin: 50 tests (9 spec files)
+  - [ ] partner: 30 tests (6 spec files)
+  - [ ] kiosk: 15 tests (5 spec files)
+  - [ ] responsive: mobile + tablet
+- [ ] Step 10: (Covered by automated E2E tests)
 - [ ] Step 11: UI component audit
-- [ ] Step 12: Final full-system validation (build + lint + browser re-check)
+- [ ] Step 12: Final full-system validation (build + lint + E2E re-run)
 ```
 
 Mark each step complete only when it passes with **zero errors**. If a later step breaks an earlier one, go back and re-validate.

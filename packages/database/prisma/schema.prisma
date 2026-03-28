@@ -322,6 +322,91 @@ enum ScanStatus {
   SCAN_ERROR
 }
 
+// ─── Website Scan Enums ─────────────────────────────────────────────────────
+
+enum WebsiteScanType {
+  FULL
+  INCREMENTAL
+  TARGETED
+}
+
+enum WebsiteScanTrigger {
+  SCHEDULED
+  MANUAL
+  RETRY
+}
+
+enum WebsiteScanStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum ScanPageType {
+  HOME
+  ABOUT
+  CONTACT
+  DIRECTORY
+  ANIMAL_LISTING
+  ANIMAL_DETAIL
+  FAQ
+  POLICY
+  OTHER_PAGE
+}
+
+enum ScanExtractionType {
+  ORGANIZATION_EXTRACTION
+  CONTACT_EXTRACTION
+  POLICY_EXTRACTION
+  ANIMAL_LIST_PAGE_EXTRACTION
+  ANIMAL_DETAIL_PAGE_EXTRACTION
+  SERVICE_AREA_EXTRACTION
+  TRUST_SIGNAL_EXTRACTION
+  OTHER_EXTRACTION
+}
+
+enum ScanAnimalType {
+  SCAN_DOG
+  SCAN_CAT
+  SCAN_BIRD
+  SCAN_OTHER
+}
+
+enum ScanQualityCheckStatus {
+  PASS
+  WARN
+  FAIL
+}
+
+enum ScanQualitySeverity {
+  LOW_SEVERITY
+  MEDIUM_SEVERITY
+  HIGH_SEVERITY
+  CRITICAL_SEVERITY
+}
+
+enum PromotionStatus {
+  PROMOTION_PENDING
+  PROMOTION_IN_PROGRESS
+  PROMOTION_COMPLETED
+  PROMOTION_FAILED
+}
+
+enum PromotionRecordType {
+  ORGANIZATION_RECORD
+  ANIMAL_LISTING_RECORD
+  CONTACT_RECORD
+  TRUST_SIGNAL_RECORD
+}
+
+enum PromotionAction {
+  INSERT
+  UPDATE
+  DEACTIVATE
+  SKIP
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -428,6 +513,11 @@ model Organization {
   serviceRadiusKm  Int?
   status           OrgStatus @default(DRAFT)
   dataSource       String?
+  sourceScanId     String?   @db.Uuid
+  sourceRecordId   String?   @db.Uuid
+  promotedAt       DateTime?
+  promotionBatchId String?   @db.Uuid
+  lastSeenScanId   String?   @db.Uuid
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -529,6 +619,11 @@ model Pet {
   healthJson        Json?
   adoptionOrSaleType AdoptionOrSaleType
   dataSource         String?
+  sourceScanId       String?   @db.Uuid
+  sourceRecordId     String?   @db.Uuid
+  promotedAt         DateTime?
+  promotionBatchId   String?   @db.Uuid
+  lastSeenScanId     String?   @db.Uuid
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -993,4 +1088,271 @@ model AuditLog {
   @@index([targetType, targetId])
   @@index([actionType])
   @@index([createdAt])
+}
+
+// ─── Website Scan Models ────────────────────────────────────────────────────
+
+model CrawlWebsite {
+  id               String   @id @default(uuid()) @db.Uuid
+  domain           String   @unique
+  baseUrl          String
+  sourceType       String
+  organizationHint String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  scans WebsiteScan[]
+
+  @@index([domain])
+  @@index([active])
+}
+
+model WebsiteScan {
+  id               String            @id @default(uuid()) @db.Uuid
+  websiteId        String            @db.Uuid
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  scanType         WebsiteScanType   @default(FULL)
+  triggerType      WebsiteScanTrigger @default(MANUAL)
+  status           WebsiteScanStatus @default(RUNNING)
+  crawlerVersion   String?
+  extractorVersion String?
+  configVersion    String?
+  pageCount        Int               @default(0)
+  listingCount     Int               @default(0)
+  notes            String?
+  createdAt        DateTime          @default(now())
+
+  website              CrawlWebsite          @relation(fields: [websiteId], references: [id])
+  pages                ScanPage[]
+  entities             ScanEntity[]
+  animalListings       ScanAnimalListing[]
+  qualityChecks        ScanQualityCheck[]
+  promotionBatches     ScanPromotionBatch[]
+
+  @@index([websiteId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+model ScanPage {
+  id                      String       @id @default(uuid()) @db.Uuid
+  scanId                  String       @db.Uuid
+  url                     String
+  canonicalUrl            String?
+  contentType             String?
+  httpStatus              Int?
+  fetchStartedAt          DateTime?
+  fetchCompletedAt        DateTime?
+  checksum                String?
+  rawStoragePath          String?
+  renderedTextStoragePath String?
+  markdownStoragePath     String?
+  title                   String?
+  metaDescription         String?
+  pageType                ScanPageType @default(OTHER_PAGE)
+  discoveredFromUrl       String?
+  depth                   Int          @default(0)
+  isListingPage           Boolean      @default(false)
+  isDetailPage            Boolean      @default(false)
+  createdAt               DateTime     @default(now())
+
+  scan                    WebsiteScan             @relation(fields: [scanId], references: [id])
+  markdown                ScanPageMarkdown?
+  extractions             ScanPageExtraction[]
+  entityContacts          ScanEntityContact[]
+  animalListingsFromSource ScanAnimalListing[]    @relation("AnimalListingSourcePage")
+  animalListingsFromDetail ScanAnimalListing[]    @relation("AnimalListingDetailPage")
+  animalListingEvidence    ScanAnimalListingEvidence[]
+
+  @@index([scanId])
+  @@index([url])
+  @@index([pageType])
+}
+
+model ScanPageMarkdown {
+  scanPageId              String   @id @db.Uuid
+  markdownContent         String
+  markdownGeneratorVersion String?
+  createdAt               DateTime @default(now())
+
+  scanPage ScanPage @relation(fields: [scanPageId], references: [id])
+}
+
+model ScanPageExtraction {
+  id               String             @id @default(uuid()) @db.Uuid
+  scanPageId       String             @db.Uuid
+  extractionType   ScanExtractionType
+  jsonPayload      Json
+  extractorName    String?
+  extractorVersion String?
+  confidence       Float?
+  createdAt        DateTime           @default(now())
+
+  scanPage ScanPage @relation(fields: [scanPageId], references: [id])
+
+  @@index([scanPageId])
+  @@index([extractionType])
+}
+
+model ScanEntity {
+  id                  String   @id @default(uuid()) @db.Uuid
+  scanId              String   @db.Uuid
+  entityKeyCandidate  String?
+  name                String
+  canonicalWebsite    String?
+  category            String?
+  subcategory         String?
+  organizationType    String?
+  petTypes            String[]
+  breeds              String[]
+  areaServedJson      Json?
+  summaryDescription  String?
+  trustScoreCandidate Float?
+  jsonPayload         Json?
+  confidence          Float?
+  createdAt           DateTime @default(now())
+
+  scan     WebsiteScan         @relation(fields: [scanId], references: [id])
+  contacts ScanEntityContact[]
+
+  @@index([scanId])
+  @@index([entityKeyCandidate])
+}
+
+model ScanEntityContact {
+  id                String  @id @default(uuid()) @db.Uuid
+  scanEntityId      String  @db.Uuid
+  contactType       String
+  label             String?
+  valueRaw          String
+  valueNormalized   String?
+  confidence        Float?
+  sourceScanPageId  String? @db.Uuid
+
+  scanEntity ScanEntity @relation(fields: [scanEntityId], references: [id])
+  sourcePage ScanPage?  @relation(fields: [sourceScanPageId], references: [id])
+
+  @@index([scanEntityId])
+}
+
+model ScanAnimalListing {
+  id                    String         @id @default(uuid()) @db.Uuid
+  scanId                String         @db.Uuid
+  sourceScanPageId      String?        @db.Uuid
+  detailScanPageId      String?        @db.Uuid
+  listingUrl            String?
+  listingExternalId     String?
+  name                  String?
+  animalType            ScanAnimalType?
+  breed                 String?
+  secondaryBreed        String?
+  sex                   String?
+  ageText               String?
+  ageCategory           String?
+  size                  String?
+  color                 String?
+  coat                  String?
+  adoptionStatus        String?
+  availabilityStatus    String?
+  specialNeeds          String?
+  goodWithChildren      Boolean?
+  goodWithDogs          Boolean?
+  goodWithCats          Boolean?
+  houseTrained          Boolean?
+  spayedNeutered        Boolean?
+  vaccinated            Boolean?
+  declawed              Boolean?
+  description           String?
+  locationCity          String?
+  locationState         String?
+  organizationName      String?
+  organizationReference String?
+  postedDate            DateTime?
+  updatedDate           DateTime?
+  photoUrlsJson         Json?
+  attributeJson         Json?
+  jsonPayload           Json?
+  confidence            Float?
+  createdAt             DateTime       @default(now())
+
+  scan       WebsiteScan @relation(fields: [scanId], references: [id])
+  sourcePage ScanPage?   @relation("AnimalListingSourcePage", fields: [sourceScanPageId], references: [id])
+  detailPage ScanPage?   @relation("AnimalListingDetailPage", fields: [detailScanPageId], references: [id])
+  markdown   ScanAnimalListingMarkdown?
+  evidence   ScanAnimalListingEvidence[]
+
+  @@index([scanId])
+  @@index([listingExternalId])
+  @@index([animalType])
+}
+
+model ScanAnimalListingMarkdown {
+  scanAnimalListingId String   @id @db.Uuid
+  markdownContent     String
+  createdAt           DateTime @default(now())
+
+  animalListing ScanAnimalListing @relation(fields: [scanAnimalListingId], references: [id])
+}
+
+model ScanAnimalListingEvidence {
+  id                  String  @id @default(uuid()) @db.Uuid
+  scanAnimalListingId String  @db.Uuid
+  fieldName           String
+  sourceScanPageId    String? @db.Uuid
+  sourceSnippet       String?
+  extractorName       String?
+  confidence          Float?
+
+  animalListing ScanAnimalListing @relation(fields: [scanAnimalListingId], references: [id])
+  sourcePage    ScanPage?         @relation(fields: [sourceScanPageId], references: [id])
+
+  @@index([scanAnimalListingId])
+}
+
+model ScanQualityCheck {
+  id          String                 @id @default(uuid()) @db.Uuid
+  scanId      String                 @db.Uuid
+  checkName   String
+  checkStatus ScanQualityCheckStatus
+  severity    ScanQualitySeverity    @default(MEDIUM_SEVERITY)
+  detailsJson Json?
+  createdAt   DateTime               @default(now())
+
+  scan WebsiteScan @relation(fields: [scanId], references: [id])
+
+  @@index([scanId])
+  @@index([checkStatus])
+}
+
+model ScanPromotionBatch {
+  id          String          @id @default(uuid()) @db.Uuid
+  scanId      String          @db.Uuid
+  startedAt   DateTime        @default(now())
+  completedAt DateTime?
+  status      PromotionStatus @default(PROMOTION_PENDING)
+  approvedBy  String?
+  notes       String?
+
+  scan    WebsiteScan           @relation(fields: [scanId], references: [id])
+  results ScanPromotionResult[]
+
+  @@index([scanId])
+  @@index([status])
+}
+
+model ScanPromotionResult {
+  id               String              @id @default(uuid()) @db.Uuid
+  promotionBatchId String              @db.Uuid
+  recordType       PromotionRecordType
+  sourceRecordId   String              @db.Uuid
+  targetRecordId   String?             @db.Uuid
+  action           PromotionAction
+  notes            String?
+
+  batch ScanPromotionBatch @relation(fields: [promotionBatchId], references: [id])
+
+  @@index([promotionBatchId])
+  @@index([recordType])
 }

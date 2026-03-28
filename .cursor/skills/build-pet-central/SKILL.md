@@ -35,7 +35,9 @@ Read [integration-plan.md](integration-plan.md) for the integration plan.
 
 Goal: Verify every part of the system works end-to-end. Find all errors, fix them, retest, and repeat until the system is fully functional with zero errors.
 
-Read [testing-plan.md](testing-plan.md) for the full testing plan and follow its instructions.
+Read [testing-plan.md](testing-plan.md) for build validation (Steps 1-8) and manual review instructions.
+
+Read [e2e-test-plan.md](e2e-test-plan.md) for the automated Playwright E2E test suite covering all 5 web apps (~205 tests across 41 spec files). This replaces the manual browser validation steps (9-10) with repeatable automated tests that click every button, fill every form, and verify every interactive element.
 
 ## Working Principles
 

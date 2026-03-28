@@ -13,6 +13,10 @@ const titleMap: Record<string, string> = {
   '/audit-log': 'Audit Log',
   '/ai/correspondence': 'AI Correspondence',
   '/ai/discovery': 'AI Discovery',
+  '/scan': 'Scan Dashboard',
+  '/scan/websites': 'Websites',
+  '/scan/history': 'Scan History',
+  '/scan/promotions': 'Promotions',
   '/settings': 'Settings',
   '/auth/login': 'Login',
 };

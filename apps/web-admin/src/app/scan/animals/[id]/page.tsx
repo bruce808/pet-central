@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { LoadingSpinner, Badge, StatusBadge } from '@pet-central/ui';
@@ -32,6 +33,7 @@ function BoolBadge({ label, value }: { label: string; value: unknown }) {
 export default function AnimalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [photoIdx, setPhotoIdx] = useState(0);
 
   const query = useQuery({
     queryKey: ['scan', 'animal', id],
@@ -55,6 +57,7 @@ export default function AnimalDetailPage() {
   const animalType = String(animal.animalType ?? '').replace('SCAN_', '') || 'Unknown';
   const attrs = (animal.attributeJson ?? {}) as Record<string, unknown>;
   const adoptionRequirements = (attrs.adoptionRequirements ?? []) as Array<{ type: string; description: string; value?: string }>;
+  const videoUrls = (attrs.videoUrls ?? []) as string[];
 
   return (
     <div className="space-y-6">
@@ -80,29 +83,59 @@ export default function AnimalDetailPage() {
         <div className="lg:col-span-1">
           <div className="rounded-xl border border-gray-100 bg-white shadow-card overflow-hidden">
             {photos.length > 0 ? (
-              <div className="space-y-2 p-3">
-                <img
-                  src={photos[0]}
-                  alt={String(animal.name ?? 'Animal photo')}
-                  className="w-full rounded-lg object-cover aspect-square bg-gray-100"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-                {photos.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto">
-                    {photos.slice(1, 5).map((url, i) => (
-                      <img
-                        key={i}
-                        src={url}
-                        alt=""
-                        className="h-16 w-16 rounded-lg object-cover shrink-0 bg-gray-100"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
-                    ))}
-                    {photos.length > 5 && (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-xs text-gray-500 shrink-0">
-                        +{photos.length - 5}
+              <div className="p-3 space-y-3">
+                <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                  <img
+                    key={photoIdx}
+                    src={photos[photoIdx]}
+                    alt={String(animal.name ?? 'Animal photo')}
+                    className="absolute inset-0 h-full w-full object-cover z-10"
+                    onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+                    onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = '1'; }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-sm pointer-events-none z-0">
+                    No image
+                  </div>
+                  {photos.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setPhotoIdx(i => (i - 1 + photos.length) % photos.length)}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white text-lg hover:bg-black/70 transition-colors"
+                        aria-label="Previous photo"
+                      >
+                        &#8249;
+                      </button>
+                      <button
+                        onClick={() => setPhotoIdx(i => (i + 1) % photos.length)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white text-lg hover:bg-black/70 transition-colors"
+                        aria-label="Next photo"
+                      >
+                        &#8250;
+                      </button>
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 rounded-full bg-black/50 px-2.5 py-0.5 text-xs text-white">
+                        {photoIdx + 1} / {photos.length}
                       </div>
-                    )}
+                    </>
+                  )}
+                </div>
+                {photos.length > 1 && (
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    {photos.map((url, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setPhotoIdx(i)}
+                        className={`h-14 w-14 rounded-lg overflow-hidden shrink-0 border-2 transition-colors bg-gray-100 ${
+                          i === photoIdx ? 'border-brand-500' : 'border-transparent hover:border-gray-300'
+                        }`}
+                      >
+                        <img
+                          src={url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+                        />
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -137,28 +170,51 @@ export default function AnimalDetailPage() {
             <InfoRow label="Confidence" value={animal.confidence != null ? `${(Number(animal.confidence) * 100).toFixed(0)}%` : undefined} />
           </div>
 
-          {/* Compatibility */}
-          {(animal.goodWithChildren !== undefined || animal.goodWithDogs !== undefined || animal.goodWithCats !== undefined ||
-            animal.houseTrained !== undefined || animal.spayedNeutered !== undefined || animal.vaccinated !== undefined) && (
-            <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-card">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Compatibility & Health</h3>
-              <div className="flex flex-wrap gap-2">
-                <BoolBadge label="Good with Children" value={animal.goodWithChildren} />
-                <BoolBadge label="Good with Dogs" value={animal.goodWithDogs} />
-                <BoolBadge label="Good with Cats" value={animal.goodWithCats} />
-                <BoolBadge label="House Trained" value={animal.houseTrained} />
-                <BoolBadge label="Spayed/Neutered" value={animal.spayedNeutered} />
-                <BoolBadge label="Vaccinated" value={animal.vaccinated} />
-                <BoolBadge label="Microchipped" value={attrs.microchipped} />
-                <BoolBadge label="Declawed" value={animal.declawed} />
-              </div>
-              {String(animal.specialNeeds ?? '') && (
-                <p className="mt-3 text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
-                  Special Needs: {String(animal.specialNeeds)}
-                </p>
-              )}
+          {/* Compatibility & Health */}
+          <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-card">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Compatibility & Health</h3>
+            <div className="flex flex-wrap gap-2">
+              <BoolBadge label="Good with Children" value={animal.goodWithChildren} />
+              <BoolBadge label="Good with Dogs" value={animal.goodWithDogs} />
+              <BoolBadge label="Good with Cats" value={animal.goodWithCats} />
+              <BoolBadge label="Good with Seniors" value={attrs.goodWithSeniors} />
+              <BoolBadge label="House Trained" value={animal.houseTrained} />
+              <BoolBadge label="Spayed/Neutered" value={animal.spayedNeutered} />
+              <BoolBadge label="Vaccinated" value={animal.vaccinated} />
+              <BoolBadge label="Microchipped" value={attrs.microchipped} />
+              <BoolBadge label="Declawed" value={animal.declawed} />
             </div>
-          )}
+            {(attrs.crateTrained !== undefined || attrs.pottyTrained !== undefined || attrs.leashTrained !== undefined ||
+              attrs.goodInCar !== undefined || attrs.freeRoam !== undefined || attrs.knowsBasicCommands !== undefined ||
+              attrs.litterBoxTrained !== undefined) && (
+              <>
+                <h3 className="text-sm font-semibold text-gray-900 mt-4 mb-2">Training & Behavior</h3>
+                <div className="flex flex-wrap gap-2">
+                  <BoolBadge label="Crate Trained" value={attrs.crateTrained} />
+                  <BoolBadge label="Potty Trained" value={attrs.pottyTrained} />
+                  <BoolBadge label="Leash Trained" value={attrs.leashTrained} />
+                  <BoolBadge label="Good in Car" value={attrs.goodInCar} />
+                  <BoolBadge label="Free Roam" value={attrs.freeRoam} />
+                  <BoolBadge label="Knows Commands" value={attrs.knowsBasicCommands} />
+                  <BoolBadge label="Litter Box Trained" value={attrs.litterBoxTrained} />
+                </div>
+              </>
+            )}
+            {attrs.energyLevel ? (
+              <p className="mt-3 text-sm"><span className="font-medium text-gray-500">Energy Level:</span> <span className="capitalize text-gray-800">{String(attrs.energyLevel)}</span></p>
+            ) : null}
+            {attrs.separationAnxiety === true && (
+              <p className="mt-2 text-sm text-amber-700 bg-amber-50 rounded-lg p-2">Has separation anxiety</p>
+            )}
+            {attrs.fenceRequired === true && (
+              <p className="mt-2 text-sm text-blue-700 bg-blue-50 rounded-lg p-2">Fenced yard required</p>
+            )}
+            {String(animal.specialNeeds ?? '') && (
+              <p className="mt-2 text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
+                Special Needs: {String(animal.specialNeeds)}
+              </p>
+            )}
+          </div>
 
           {/* Description */}
           {String(animal.description ?? '') && (
@@ -182,6 +238,30 @@ export default function AnimalDetailPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Videos */}
+          {videoUrls.length > 0 && (
+            <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-card">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Videos ({videoUrls.length})</h3>
+              <div className="space-y-3">
+                {videoUrls.map((url, i) => {
+                  const ytMatch = url.match(/(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([\w-]+)/);
+                  if (ytMatch) {
+                    return (
+                      <div key={i} className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+                        <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} className="h-full w-full" allowFullScreen title={`Video ${i + 1}`} />
+                      </div>
+                    );
+                  }
+                  return (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-brand-600 hover:underline">
+                      Video {i + 1}: {url.split('/').pop()?.slice(0, 40)}
+                    </a>
+                  );
+                })}
+              </div>
             </div>
           )}
 

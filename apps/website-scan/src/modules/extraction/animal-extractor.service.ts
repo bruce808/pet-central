@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { PageClassification } from './page-classifier.service';
+import { SiteExtractionConfig, DEFAULT_CONFIG, mergeConfigs } from './site-extraction-config';
 
 export interface AdoptionRequirement {
   type: string;
@@ -41,6 +42,7 @@ export interface AnimalCandidate {
   postedDate?: string;
   updatedDate?: string;
   photoUrls: string[];
+  videoUrls: string[];
   adoptionRequirements: AdoptionRequirement[];
   attributeJson?: Record<string, unknown>;
   confidence: number;
@@ -49,6 +51,11 @@ export interface AnimalCandidate {
 @Injectable()
 export class AnimalExtractorService {
   private readonly logger = new Logger(AnimalExtractorService.name);
+  private config: SiteExtractionConfig = DEFAULT_CONFIG;
+
+  setConfig(siteConfig?: SiteExtractionConfig | null) {
+    this.config = mergeConfigs(DEFAULT_CONFIG, siteConfig);
+  }
 
   private static readonly BREED_NAMES = [
     'labrador','retriever','shepherd','bulldog','poodle','terrier','beagle',
@@ -138,6 +145,7 @@ export class AnimalExtractorService {
 
     const animalType = this.inferAnimalType(combinedText);
     const photoUrls = this.extractAnimalPhotos(html, sourceUrl);
+    const videoUrls = this.extractAnimalVideos(html, sourceUrl);
 
     const breed = this.extractBreed(combinedText);
     const secondaryBreed = this.extractSecondaryBreed(combinedText, breed);
@@ -147,6 +155,8 @@ export class AnimalExtractorService {
     const requirements = this.extractAdoptionRequirements(combinedText);
     const location = this.extractLocation(combinedText);
     const externalId = this.extractExternalId(html, sourceUrl);
+
+    const animalSpecificText = this.stripOrgBoilerplate(combinedText);
 
     const candidate: AnimalCandidate = {
       listingUrl: sourceUrl,
@@ -165,18 +175,22 @@ export class AnimalExtractorService {
       adoptionFee: this.n2u(this.extractAdoptionFee(combinedText)),
       description: this.n2u(description),
       photoUrls,
-      goodWithChildren: this.detectBoolField(combinedText, /good\s*with\s*(children|kids)/i),
-      goodWithDogs: this.detectBoolField(combinedText, /good\s*with\s*(other\s*)?dogs/i),
-      goodWithCats: this.detectBoolField(combinedText, /good\s*with\s*cats/i),
-      houseTrained: this.detectBoolField(combinedText, /house[\s-]?trained|potty[\s-]?trained/i),
-      spayedNeutered: this.detectBoolField(combinedText, /\b(spayed|neutered|altered|fixed)\b/i),
-      vaccinated: this.detectBoolField(combinedText, /\b(vaccinated|vaccines?\s*up[\s-]to[\s-]date|current\s*on\s*vaccines?|shots?\s*up[\s-]to[\s-]date|fully\s*vaccinated)\b/i),
-      microchipped: this.detectBoolField(combinedText, /\b(microchipped|micro[\s-]?chipped)\b/i),
-      declawed: this.detectBoolField(combinedText, /\bdeclawed\b/i),
+      videoUrls,
+      goodWithChildren: this.detectBoolFieldStrict(animalSpecificText, /good\s*with\s*(children|kids)/i, /not?\s*(?:good|recommended)\s*(?:with|for)\s*(children|kids)/i),
+      goodWithDogs: this.detectBoolFieldStrict(animalSpecificText, /good\s*with\s*(other\s*)?dogs/i, /not?\s*good\s*with\s*(other\s*)?dogs|no\s*(?:other\s*)?dogs/i),
+      goodWithCats: this.detectBoolFieldStrict(animalSpecificText, /good\s*with\s*cats/i, /not?\s*good\s*with\s*cats|no\s*cats/i),
+      houseTrained: this.detectBoolFieldStrict(animalSpecificText, /\b(?:house[\s-]?trained|fully\s*house[\s-]?trained)\b/i, /not?\s*(?:yet\s*)?house[\s-]?trained/i),
+      spayedNeutered: this.detectBoolFieldStrict(animalSpecificText, /\b(?:(?:is|already|has\s*been)\s+(?:spayed|neutered|altered|fixed))\b/i, /not?\s*(?:yet\s*)?(?:spayed|neutered|altered|fixed)|awaiting\s*(?:spay|neuter)/i),
+      vaccinated: this.detectBoolFieldStrict(animalSpecificText, /\b(?:(?:is|already|has\s*been)\s+(?:fully\s*)?vaccinated|vaccines?\s*(?:are\s*)?up[\s-]to[\s-]date|current\s*on\s*(?:all\s*)?vaccines?)\b/i, /not?\s*(?:yet\s*)?vaccinated/i),
+      microchipped: this.detectBoolFieldStrict(animalSpecificText, /\b(?:(?:is|already|has\s*been)\s+(?:micro[\s-]?chipped))\b/i, null),
+      declawed: this.detectBoolFieldStrict(animalSpecificText, /\b(?:is\s+declawed|has\s*been\s*declawed)\b/i, /not?\s*declawed/i),
       adoptionStatus: this.n2u(this.detectAdoptionStatus(combinedText)),
       specialNeeds: this.n2u(this.extractSpecialNeeds(combinedText)),
       adoptionRequirements: requirements,
-      attributeJson: requirements.length > 0 ? { adoptionRequirements: requirements } : undefined,
+      attributeJson: {
+        ...(requirements.length > 0 ? { adoptionRequirements: requirements } : {}),
+        ...this.extractPetTraits(animalSpecificText),
+      },
       confidence: this.computeConfidence(name, animalType, breed, photoUrls, description),
     };
 
@@ -195,8 +209,19 @@ export class AnimalExtractorService {
   private findAnimalCards(html: string, sourceUrl: string): AnimalCandidate[] {
     const results: AnimalCandidate[] = [];
 
+    const configSelectors = this.config.cards?.selectors ?? [];
+    const allSelectors = new Set([
+      ...configSelectors,
+      'pet-card', 'animal-card', 'adoptable', 'pet-item', 'grid-item',
+      'listing-card', 'result-card', 'pet-listing', 'animal-listing',
+      'pet-result', 'card-body', 'pet-grid-item', 'pet-list-item',
+      'adoptable-pet', 'available-pet', 'search-result', 'pet-entry',
+      'large-tile', 'small-tile', 'animal-tile', 'pet-tile',
+    ]);
+    const selectorPattern = [...allSelectors].join('|');
+
     const cardPatterns = [
-      /<(?:div|article|li|a|section)[^>]*class="[^"]*(?:pet-card|animal-card|adoptable|pet-item|grid-item|listing-card|result-card|pet-listing|animal-listing|pet-result|card-body|pet-grid-item|pet-list-item|adoptable-pet|available-pet|search-result|pet-entry|large-tile|small-tile|animal-tile|pet-tile)[^"]*"[^>]*>[\s\S]*?<\/(?:div|article|li|a|section)>/gi,
+      new RegExp(`<(?:div|article|li|a|section)[^>]*class="[^"]*(?:${selectorPattern})[^"]*"[^>]*>[\\s\\S]*?<\\/(?:div|article|li|a|section)>`, 'gi'),
       /<article[^>]*>[\s\S]*?<\/article>/gi,
       /<(?:div|li)[^>]*(?:data-pet|data-animal|data-id)[^>]*>[\s\S]*?<\/(?:div|li)>/gi,
     ];
@@ -316,6 +341,7 @@ export class AnimalExtractorService {
       size: this.n2u(size),
       adoptionStatus: this.n2u(adoptionStatus),
       photoUrls,
+      videoUrls: [],
       adoptionRequirements: [],
       description: text.length > 20 && text.length < 500 ? text.trim() : undefined,
       confidence: this.computeConfidence(name, this.inferAnimalType(text), breed, photoUrls, undefined),
@@ -407,56 +433,85 @@ export class AnimalExtractorService {
   }
 
   private extractAnimalPhotos(html: string, sourceUrl: string): string[] {
-    const photos: string[] = [];
     const seen = new Set<string>();
+    const photos: string[] = [];
 
-    const addPhoto = (url: string) => {
-      const full = this.resolveUrl(url, sourceUrl);
-      if (seen.has(full)) return;
-      if (/logo|icon|sprite|badge|button|pixel|tracking|avatar|banner|header|footer|social|favicon|spacer|placeholder|blank|transparent/i.test(full)) return;
-      if (/\.(svg|gif|ico)(\?|$)/i.test(full)) return;
-      if (/\/assets\/(icons|ui|layout)\//i.test(full)) return;
-      seen.add(full);
+    const excludePatterns = this.config.excludeImagePatterns ?? [];
+    const excludeRegex = excludePatterns.length > 0
+      ? new RegExp(excludePatterns.join('|'), 'i')
+      : /logo|icon|sprite|badge|button|pixel|tracking|avatar|banner|social|favicon|spacer|placeholder|blank|transparent/i;
+
+    const srcAttrs = (this.config.gallery?.imageSrcAttribute ?? 'data-src,data-lazy,data-original,src').split(',').map(a => a.trim());
+
+    const addPhoto = (url: string): boolean => {
+      let full = this.resolveUrl(url, sourceUrl);
+      full = this.upgradeToFullRes(full);
+      const normalized = full.replace(/[?#].*$/, '');
+      if (seen.has(normalized)) return false;
+      if (excludeRegex.test(full)) return false;
+      if (/\.(svg|gif|ico)(\?|$)/i.test(full)) return false;
+      if (/\/assets\/(icons|ui|layout|images)\//i.test(full)) return false;
+      if (/facebook\.com|google-analytics|doubleclick|googletagmanager|hotjar|mixpanel|noscript/i.test(full)) return false;
+      seen.add(normalized);
       photos.push(full);
+      return true;
     };
 
-    const ogImage = this.metaContent(html, 'og:image', 'property');
-    if (ogImage) addPhoto(ogImage);
+    const extractSrcFromTag = (tag: string): string | undefined => {
+      for (const attr of srcAttrs) {
+        const re = new RegExp(`\\b${attr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*=\\s*["'\\s]*([^"'\\s>]+)["']`, 'i');
+        const m = tag.match(re);
+        if (m?.[1]) return m[1];
+      }
+      return undefined;
+    };
 
+    const imageSelector = this.config.gallery?.imageSelector ?? '';
+    const galleryCssClass = imageSelector.match(/img\.([a-zA-Z0-9_-]+)/)?.[1]
+      ?? imageSelector.match(/class\*="([^"]+)"/)?.[1]
+      ?? '';
+
+    if (galleryCssClass) {
+      const galleryImgs = [...html.matchAll(new RegExp(`<img[^>]*class="[^"]*${galleryCssClass}[^"]*"[^>]*>`, 'gi'))];
+      for (const gm of galleryImgs) {
+        const src = extractSrcFromTag(gm[0]);
+        if (src) addPhoto(src);
+      }
+    }
+
+    if (photos.length >= 2) return photos.slice(0, 30);
+
+    const containerSelector = this.config.gallery?.containerSelector ?? '';
+    const containerCssClass = containerSelector.replace(/^\./, '');
+    if (containerCssClass) {
+      const containerImgs = [...html.matchAll(new RegExp(`<div[^>]*class="[^"]*${containerCssClass}[^"]*"[^>]*>[\\s\\S]*?<img[^>]+>`, 'gi'))];
+      for (const hm of containerImgs) {
+        const src = extractSrcFromTag(hm[0]);
+        if (src) addPhoto(src);
+      }
+    }
+
+    const carouselImgs = [...html.matchAll(/<(?:div|li|a|figure)[^>]*class="[^"]*(?:slide|carousel-item|swiper-slide|slick-slide|glide__slide|splide__slide|lightbox|photo-item)[^"]*"[^>]*>[\s\S]*?<\/(?:div|li|a|figure)>/gi)];
+    for (const cm of carouselImgs) {
+      const imgs = [...cm[0].matchAll(/<img[^>]*(?:data-(?:src|lazy)|src)=["'\s]*([^"'\s>]+)["'][^>]*>/gi)];
+      for (const im of imgs) { if (im[1]) addPhoto(im[1]); }
+    }
+
+    if (photos.length >= 2) return photos.slice(0, 30);
+
+    const mainContent = this.extractMainContentHtml(html);
     const imgRegex = /<img[^>]*>/gi;
     let m;
-    while ((m = imgRegex.exec(html)) !== null) {
+    while ((m = imgRegex.exec(mainContent)) !== null) {
       const tag = m[0];
-      const src = (tag.match(/src=["']([^"']+)["']/i) || [])[1];
-      const dataSrc = (tag.match(/data-(?:src|lazy|original|full|zoom|large)=["']([^"']+)["']/i) || [])[1];
       const srcset = (tag.match(/srcset=["']([^"']+)["']/i) || [])[1];
+      const best = srcset ? this.pickLargestFromSrcset(srcset) : null;
 
-      if (dataSrc) addPhoto(dataSrc);
-      if (src) addPhoto(src);
-      if (srcset) {
-        const largest = srcset.split(',').map(s => s.trim().split(/\s+/)[0]!).pop();
-        if (largest) addPhoto(largest);
+      if (best) addPhoto(best);
+      else {
+        const src = extractSrcFromTag(tag);
+        if (src) addPhoto(src);
       }
-    }
-
-    const bgRegex = /(?:background(?:-image)?)\s*:\s*url\(\s*["']?([^"')]+)["']?\s*\)/gi;
-    while ((m = bgRegex.exec(html)) !== null) {
-      if (m[1]) addPhoto(m[1]);
-    }
-
-    const carouselRegex = /<(?:div|li|a|figure)[^>]*class="[^"]*(?:slide|carousel-item|gallery-item|swiper-slide|slick-slide|glide__slide|splide__slide|lightbox|photo-item)[^"]*"[^>]*>[\s\S]*?<\/(?:div|li|a|figure)>/gi;
-    while ((m = carouselRegex.exec(html)) !== null) {
-      const slideHtml = m[0];
-      const slideImgs = slideHtml.matchAll(/<img[^>]*(?:src|data-src|data-lazy)=["']([^"']+)["'][^>]*>/gi);
-      for (const si of slideImgs) {
-        if (si[1]) addPhoto(si[1]);
-      }
-    }
-
-    const sourceRegex = /<source[^>]+srcset=["']([^"']+)["']/gi;
-    while ((m = sourceRegex.exec(html)) !== null) {
-      const largest = m[1]!.split(',').map(s => s.trim().split(/\s+/)[0]!).pop();
-      if (largest) addPhoto(largest);
     }
 
     const dataGallery = html.match(/data-(?:images|gallery|photos)=["'](\[[\s\S]*?\])["']/i);
@@ -473,12 +528,85 @@ export class AnimalExtractorService {
     return photos.slice(0, 30);
   }
 
+  private extractAnimalVideos(html: string, sourceUrl: string): string[] {
+    const videos: string[] = [];
+    const seen = new Set<string>();
+
+    const addVideo = (url: string) => {
+      const full = this.resolveUrl(url, sourceUrl);
+      if (seen.has(full)) return;
+      seen.add(full);
+      videos.push(full);
+    };
+
+    const videoSrcRegex = /<video[^>]*>[\s\S]*?<source[^>]+src=["']([^"']+)["']/gi;
+    let m;
+    while ((m = videoSrcRegex.exec(html)) !== null) {
+      if (m[1]) addVideo(m[1]);
+    }
+
+    const videoDirectRegex = /<video[^>]+src=["']([^"']+)["']/gi;
+    while ((m = videoDirectRegex.exec(html)) !== null) {
+      if (m[1]) addVideo(m[1]);
+    }
+
+    const iframeRegex = /<iframe[^>]+src=["']([^"']+(?:youtube|vimeo|youtu\.be|wistia)[^"']*)["']/gi;
+    while ((m = iframeRegex.exec(html)) !== null) {
+      if (m[1]) addVideo(m[1]);
+    }
+
+    const ytEmbedRegex = /(?:youtube\.com\/(?:embed|watch\?v=)|youtu\.be\/)([\w-]+)/gi;
+    while ((m = ytEmbedRegex.exec(html)) !== null) {
+      addVideo(`https://www.youtube.com/watch?v=${m[1]}`);
+    }
+
+    const dataVideoRegex = /data-(?:video|video-url|video-src)=["']([^"']+)["']/gi;
+    while ((m = dataVideoRegex.exec(html)) !== null) {
+      if (m[1]) addVideo(m[1]);
+    }
+
+    const mp4Regex = /["'](https?:\/\/[^"']+\.mp4(?:\?[^"']*)?)["']/gi;
+    while ((m = mp4Regex.exec(html)) !== null) {
+      if (m[1]) addVideo(m[1]);
+    }
+
+    return videos.slice(0, 10);
+  }
+
+  private extractMainContentHtml(html: string): string {
+    let cleaned = html;
+    cleaned = cleaned.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
+    cleaned = cleaned.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
+    cleaned = cleaned.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '');
+
+    const sections = this.config.excludeSections ?? [];
+    for (const entry of sections) {
+      const escaped = entry.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`<(?:div|section|aside)[^>]*class="[^"]*${escaped}[^"]*"[^>]*>[\\s\\S]*?<\\/(?:div|section|aside)>`, 'gi');
+      cleaned = cleaned.replace(re, '');
+    }
+
+    return cleaned;
+  }
+
+  private stripOrgBoilerplate(text: string): string {
+    const patterns = this.config.boilerplatePatterns ?? [];
+    let result = text;
+    for (const pattern of patterns) {
+      result = result.replace(new RegExp(pattern, 'gi'), '');
+    }
+    return result;
+  }
+
   private inferAnimalType(text: string): string | null {
     const lower = text.toLowerCase();
     const dogScore = (lower.match(/\b(dog|puppy|puppies|canine|pup)\b/g) || []).length;
     const catScore = (lower.match(/\b(cat|kitten|kittens|feline|kitty)\b/g) || []).length;
     const birdScore = (lower.match(/\b(bird|parrot|parakeet|cockatiel|avian|macaw|conure|finch)\b/g) || []).length;
+    const rabbitScore = (lower.match(/\b(rabbit|bunny|bunnies|hare)\b/g) || []).length;
+    const otherScore = (lower.match(/\b(hamster|guinea\s*pig|ferret|reptile|snake|lizard|turtle|tortoise|iguana|gecko|rat|mouse|chinchilla|hedgehog|pig|goat|horse|chicken|duck)\b/g) || []).length;
 
+    if (rabbitScore > 0 || otherScore > 0) return 'SCAN_OTHER';
     if (dogScore > catScore && dogScore > birdScore) return 'SCAN_DOG';
     if (catScore > dogScore && catScore > birdScore) return 'SCAN_CAT';
     if (birdScore > 0) return 'SCAN_BIRD';
@@ -502,6 +630,57 @@ export class AnimalExtractorService {
     const before = text.slice(Math.max(0, idx - 20), idx).toLowerCase();
     if (/\bno\b|not\b|un/.test(before)) return false;
     return true;
+  }
+
+  private detectBoolFieldStrict(text: string, positiveRegex: RegExp, negativeRegex: RegExp | null): boolean | undefined {
+    if (negativeRegex && negativeRegex.test(text)) return false;
+    if (positiveRegex.test(text)) return true;
+    return undefined;
+  }
+
+  private extractPetTraits(text: string): Record<string, unknown> {
+    const traits: Record<string, unknown> = {};
+
+    const detect = (positive: RegExp, negative: RegExp | null): boolean | undefined => {
+      if (negative && negative.test(text)) return false;
+      if (positive.test(text)) return true;
+      return undefined;
+    };
+
+    const crateTrained = detect(/\b(?:crate[\s-]?trained|comfortable\s*(?:in|with)\s*(?:a\s*)?crate)\b/i, /not?\s*(?:yet\s*)?crate[\s-]?trained/i);
+    if (crateTrained !== undefined) traits.crateTrained = crateTrained;
+
+    const pottyTrained = detect(/\b(?:potty[\s-]?trained|fully\s*potty[\s-]?trained)\b/i, /not?\s*(?:yet\s*)?potty[\s-]?trained/i);
+    if (pottyTrained !== undefined) traits.pottyTrained = pottyTrained;
+
+    const leashTrained = detect(/\b(?:leash[\s-]?trained|walks?\s*(?:well|nicely)\s*on\s*(?:a\s*)?leash|good\s*on[\s-]?leash)\b/i, /not?\s*(?:yet\s*)?leash[\s-]?trained|pulls?\s*on\s*leash/i);
+    if (leashTrained !== undefined) traits.leashTrained = leashTrained;
+
+    const goodInCar = detect(/\b(?:good\s*in\s*(?:the\s*)?car|travels?\s*(?:well|beautifully|nicely)|great\s*(?:in|for)\s*(?:the\s*)?car|road[\s-]?trip)\b/i, null);
+    if (goodInCar !== undefined) traits.goodInCar = goodInCar;
+
+    const freeRoam = detect(/\b(?:free[\s-]?roam|trusted?\s*(?:to\s*)?free[\s-]?roam|non[\s-]?destructive)\b/i, null);
+    if (freeRoam !== undefined) traits.freeRoam = freeRoam;
+
+    const knowsBasicCommands = detect(/\b(?:knows?\s*(?:all\s*)?(?:her|his|the)?\s*basics?|sit[\s,]\s*stay|sit[\s,]\s*(?:stay[\s,]\s*)?(?:lay\s*down|down|shake|come|leave\s*it|heel))\b/i, null);
+    if (knowsBasicCommands !== undefined) traits.knowsBasicCommands = knowsBasicCommands;
+
+    const energyLevel = text.match(/\b(low|medium|high)[\s-]?energy\b/i);
+    if (energyLevel) traits.energyLevel = energyLevel[1]!.toLowerCase();
+
+    const litterBoxTrained = detect(/\b(?:litter[\s-]?(?:box\s*)?trained|uses?\s*(?:the\s*)?litter[\s-]?box)\b/i, /not?\s*(?:yet\s*)?litter[\s-]?(?:box\s*)?trained/i);
+    if (litterBoxTrained !== undefined) traits.litterBoxTrained = litterBoxTrained;
+
+    const goodWithSeniors = detect(/\b(?:good\s*with\s*(?:senior|elderly|older)\s*(?:people|adults?|owners?)?)\b/i, null);
+    if (goodWithSeniors !== undefined) traits.goodWithSeniors = goodWithSeniors;
+
+    const separationAnxiety = detect(/\b(?:separation\s*anxiety)\b/i, null);
+    if (separationAnxiety !== undefined) traits.separationAnxiety = separationAnxiety;
+
+    const fenceRequired = detect(/\b(?:fenced[\s-]?(?:in\s*)?yard|requires?\s*(?:a\s*)?fence|physical\s*fence)\b/i, null);
+    if (fenceRequired !== undefined) traits.fenceRequired = fenceRequired;
+
+    return traits;
   }
 
   private detectAdoptionStatus(text: string): string | null {
@@ -760,6 +939,7 @@ export class AnimalExtractorService {
         ageText: this.n2u(this.extractAge(sectionText)),
         adoptionStatus: this.n2u(this.detectAdoptionStatus(sectionText)),
         photoUrls,
+        videoUrls: [],
         adoptionRequirements: [],
         description: sectionText.length > 20 && sectionText.length < 500 ? sectionText : undefined,
         confidence: 0.6 + (photoUrls.length > 0 ? 0.05 : 0),
@@ -813,6 +993,39 @@ export class AnimalExtractorService {
 
   private n2u(val: string | null): string | undefined {
     return val ?? undefined;
+  }
+
+  private upgradeToFullRes(url: string): string {
+    let upgraded = url;
+
+    const thumbPatterns = this.config.thumbnailPathPatterns ?? [];
+    for (const pattern of thumbPatterns) {
+      upgraded = upgraded.replace(new RegExp(`\\/${pattern}\\/`, 'i'), '/');
+      upgraded = upgraded.replace(new RegExp(`${pattern}\\.(jpg|jpeg|png|webp)`, 'i'), '.$1');
+    }
+
+    upgraded = upgraded.replace(/[?&](w|h|width|height|size|resize|fit|crop|quality|q|thumb|thumbnail)=[^&]*/gi, '');
+    upgraded = upgraded.replace(/[?&]auto=(?:compress|format|webp)[^&]*/gi, '');
+    if (upgraded.endsWith('?')) upgraded = upgraded.slice(0, -1);
+    return upgraded;
+  }
+
+  private pickLargestFromSrcset(srcset: string): string | null {
+    const entries = srcset.split(',').map(s => {
+      const parts = s.trim().split(/\s+/);
+      const url = parts[0]!;
+      const descriptor = parts[1] ?? '';
+      let size = 0;
+      const wMatch = descriptor.match(/(\d+)w/);
+      const xMatch = descriptor.match(/([\d.]+)x/);
+      if (wMatch) size = parseInt(wMatch[1]!, 10);
+      else if (xMatch) size = parseFloat(xMatch[1]!) * 1000;
+      else size = 0;
+      return { url, size };
+    });
+    if (entries.length === 0) return null;
+    entries.sort((a, b) => b.size - a.size);
+    return entries[0]!.url;
   }
 
   private stripTags(html: string): string {

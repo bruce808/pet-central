@@ -92,6 +92,10 @@ export class ScanOrchestratorService {
     this.logger.log(`Starting scan ${scanId} for ${domain}`);
     this.extractionService.resetCache();
 
+    const website = await this.prisma.crawlWebsite.findFirst({ where: { domain } });
+    const siteConfig = (website?.extractionConfig as Record<string, unknown> | null) ?? null;
+    this.animalExtractor.setConfig(siteConfig as any);
+
     const visited = new Set<string>();
     const checksums = new Set<string>();
     const frontier: FrontierItem[] = [{ url: baseUrl, depth: 0, priority: PRIORITY_DISCOVERY }];
@@ -268,6 +272,7 @@ export class ScanOrchestratorService {
         }
       }
 
+      await this.extractionService.generateOrgDescriptionWithLLM(scanId);
       await this.qualityChecksService.runChecks(scanId);
       await this.scansService.finalizeScan(scanId, WebsiteScanStatus.COMPLETED);
       this.logger.log(`Scan ${scanId} completed. Pages: ${visited.size}`);

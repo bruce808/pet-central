@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import OpenAI from 'openai';
 import { PrismaService } from '../../common/prisma.service';
 import { PageClassifierService, PageClassification } from './page-classifier.service';
 import { OrganizationExtractorService, OrganizationCandidate } from './organization-extractor.service';
@@ -201,17 +202,22 @@ export class ExtractionService {
     classification: PageClassification,
     pageUrl?: string,
   ): Promise<AnimalCandidate[]> {
+    const minConfidence = 0.70;
+    const allowedTypes = ['SCAN_DOG', 'SCAN_CAT', 'SCAN_BIRD'];
+
     if (classification.isListingPage) {
       const candidates = this.animalExtractor.extractFromListingPage(html, markdown, pageUrl ?? '');
       for (const candidate of candidates) {
-        await this.persistAnimalListing(scanId, scanPageId, null, candidate);
+        if (candidate.confidence > minConfidence && (!candidate.animalType || allowedTypes.includes(candidate.animalType))) {
+          await this.persistAnimalListing(scanId, scanPageId, null, candidate);
+        }
       }
       return candidates;
     }
 
     if (classification.isDetailPage) {
       const candidate = this.animalExtractor.extractFromDetailPage(html, markdown, pageUrl ?? '');
-      if (candidate) {
+      if (candidate && candidate.confidence > minConfidence && (!candidate.animalType || allowedTypes.includes(candidate.animalType))) {
         await this.persistAnimalListing(scanId, null, scanPageId, candidate);
       }
     }
@@ -264,9 +270,84 @@ export class ExtractionService {
           adoptionFee: candidate.adoptionFee,
           microchipped: candidate.microchipped,
           adoptionRequirements: candidate.adoptionRequirements ?? [],
+          videoUrls: candidate.videoUrls?.length ? candidate.videoUrls : undefined,
         },
         confidence: candidate.confidence,
       },
     });
+  }
+
+  async generateOrgDescriptionWithLLM(scanId: string) {
+    const entities = await this.prisma.scanEntity.findMany({ where: { scanId } });
+    if (entities.length === 0) return;
+
+    const pages = await this.prisma.scanPage.findMany({
+      where: { scanId, pageType: { in: ['HOME', 'ABOUT'] } },
+      include: { markdown: true },
+      take: 5,
+    });
+
+    if (pages.length === 0) return;
+
+    const markdownSnippets = pages
+      .filter(p => p.markdown?.markdownContent)
+      .map(p => {
+        const md = p.markdown!.markdownContent;
+        const cleaned = md
+          .replace(/^\s*[-*]\s+\[.*?\]\(.*?\)\s*$/gm, '')
+          .replace(/!\[.*?\]\(.*?\)/g, '')
+          .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+          .replace(/^#{1,6}\s+(Home|Menu|Search|Login|Cart|Footer|Header|Navigation|Sign Up|Register).*$/gmi, '')
+          .trim();
+        return `--- Page: ${p.url} (${p.pageType}) ---\n${cleaned.slice(0, 3000)}`;
+      })
+      .join('\n\n');
+
+    if (markdownSnippets.length < 100) return;
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      this.logger.warn('OPENAI_API_KEY not set, skipping LLM org description');
+      return;
+    }
+
+    try {
+      const openai = new OpenAI({ apiKey });
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        temperature: 0.3,
+        max_tokens: 500,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional copywriter. Write a concise, factual organization description (2-4 paragraphs, max 300 words) based on the website content provided. Focus on: what the organization does, their mission, what types of animals they serve, their location, and any notable programs or achievements. Do not include hours, contact forms, or navigation text. Write in third person.',
+          },
+          {
+            role: 'user',
+            content: `Generate a description for this organization based on their website content:\n\n${markdownSnippets.slice(0, 8000)}`,
+          },
+        ],
+      });
+
+      const description = response.choices[0]?.message.content?.trim();
+      if (!description || description.length < 50) return;
+
+      for (const entity of entities) {
+        await this.prisma.scanEntity.update({
+          where: { id: entity.id },
+          data: {
+            summaryDescription: description,
+            jsonPayload: {
+              ...((entity.jsonPayload as Record<string, unknown>) ?? {}),
+              llmGeneratedDescription: true,
+            },
+          },
+        });
+      }
+
+      this.logger.log(`Generated LLM org description for scan ${scanId}: ${description.length} chars`);
+    } catch (error: any) {
+      this.logger.warn(`Failed to generate LLM org description: ${error.message}`);
+    }
   }
 }

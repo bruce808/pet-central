@@ -99,6 +99,7 @@ export class WebsitesService {
         ...(dto.sourceType !== undefined && { sourceType: dto.sourceType }),
         ...(dto.organizationHint !== undefined && { organizationHint: dto.organizationHint }),
         ...(dto.active !== undefined && { active: dto.active }),
+        ...(dto.extractionConfig !== undefined && { extractionConfig: dto.extractionConfig }),
       },
     });
   }

@@ -148,19 +148,20 @@ export class OrganizationExtractorService {
         .map(p => p.trim())
         .filter(p => p.length > 50 && p.length < 1000)
         .filter(p => !/^\s*[-*]\s/.test(p))
+        .filter(p => !this.isScheduleText(p))
         .filter(p => /\b(animal|rescue|shelter|adopt|mission|foster|pet|dog|cat|community|care|sanctuary|nonprofit|humane|welfare|volunteer|save|protect|compassion|dedicate)\b/i.test(p));
 
       if (paragraphs.length > 0) return paragraphs[0]!.slice(0, 1000);
     }
 
     const ogDesc = this.metaContent(html, 'og:description', 'property');
-    if (ogDesc && ogDesc.length > 20) return this.clean(ogDesc);
+    if (ogDesc && ogDesc.length > 20 && !this.isScheduleText(ogDesc)) return this.clean(ogDesc);
 
     const metaDesc = this.metaContent(html, 'description', 'name');
-    if (metaDesc && metaDesc.length > 20) return this.clean(metaDesc);
+    if (metaDesc && metaDesc.length > 20 && !this.isScheduleText(metaDesc)) return this.clean(metaDesc);
 
     const schemaDesc = html.match(/"description"\s*:\s*"([^"]{20,500})"/);
-    if (schemaDesc) return this.clean(schemaDesc[1]!);
+    if (schemaDesc && !this.isScheduleText(schemaDesc[1]!)) return this.clean(schemaDesc[1]!);
 
     return null;
   }
@@ -438,6 +439,28 @@ export class OrganizationExtractorService {
 
   private resolveUrl(url: string, base: string): string {
     try { return new URL(url, base).href; } catch { return url; }
+  }
+
+  private isScheduleText(text: string): boolean {
+    const lower = text.toLowerCase();
+    const scheduleSignals = [
+      /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b.*\d{1,2}\s*(am|pm)/i,
+      /\b(closed|open)\b.*\b(closed|open)\b/i,
+      /\d{1,2}\s*(am|pm)\s*[-–]\s*\d{1,2}\s*(am|pm)/i,
+      /\b(thanksgiving|christmas|july\s*4|memorial\s*day|labor\s*day|new\s*year|easter|mlk|independence\s*day)\b/i,
+      /\b(hours|schedule|holiday)\b.*\b(closed|open)\b/i,
+      /\bselect\s*a\s*department\b/i,
+      /\b(department|category)\s*\*\s*select/i,
+      /\bcontact\s*us\b.*\bquestions\b/i,
+      /\bshoot\s*us\s*a\s*message\b/i,
+      /\b(form|submit|first\s*name|last\s*name|email\s*address|phone\s*number)\b.*\b(form|submit|first\s*name|last\s*name|email\s*address)\b/i,
+    ];
+    const matchCount = scheduleSignals.filter(re => re.test(lower)).length;
+    if (matchCount >= 1) return true;
+    const pipeCount = (text.match(/\|/g) || []).length;
+    if (pipeCount >= 3 && /\b(closed|open|am|pm)\b/i.test(lower)) return true;
+    if (pipeCount >= 5) return true;
+    return false;
   }
 
   private clean(text: string): string {

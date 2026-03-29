@@ -1098,6 +1098,7 @@ model CrawlWebsite {
   baseUrl          String
   sourceType       String
   organizationHint String?
+  extractionConfig Json?
   active           Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

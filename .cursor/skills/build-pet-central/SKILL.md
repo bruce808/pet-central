@@ -100,3 +100,6 @@ This loop is non-negotiable. Never declare work complete while errors remain.
 | Admin app | `apps/web-admin/src/` |
 | Partner app | `apps/web-partner/src/` |
 | Kiosk app | `apps/web-kiosk/src/` |
+| Website scan app | `apps/website-scan/src/` |
+| Website scan skill | `.cursor/skills/website-scan-extraction/SKILL.md` |
+| Website scan spec | `docs/website-scan.md` |

@@ -5,6 +5,7 @@ import { TrustBadge } from '@/components/TrustBadge';
 import { ReviewCard } from '@/components/ReviewCard';
 import { ListingActions } from './listing-actions';
 import { ListingTabs } from './listing-tabs';
+import { ListingGallery } from './listing-gallery';
 import type { Metadata } from 'next';
 
 interface Props {
@@ -64,26 +65,7 @@ export default async function ListingDetailPage({ params }: Props) {
         <div className="lg:col-span-2 space-y-8">
           {/* Image Gallery */}
           <div className="grid gap-2 sm:grid-cols-2">
-            {media.length > 0 ? (
-              <>
-                <div className="aspect-[4/3] overflow-hidden rounded-xl bg-gray-100 sm:col-span-2">
-                  <img
-                    src={media[0]!.url}
-                    alt={listing.title}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                {media.slice(1, 5).map((m) => (
-                  <div key={m.id} className="aspect-[4/3] overflow-hidden rounded-xl bg-gray-100">
-                    <img src={m.url} alt="" className="h-full w-full object-cover" />
-                  </div>
-                ))}
-              </>
-            ) : (
-              <div className="flex aspect-[4/3] items-center justify-center rounded-xl bg-gradient-to-br from-brand-50 to-purple-50 text-8xl sm:col-span-2">
-                🐾
-              </div>
-            )}
+            <ListingGallery media={media} title={listing.title} />
           </div>
 
           {/* Pet Info */}

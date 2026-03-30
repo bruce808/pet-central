@@ -16,6 +16,16 @@ export class PageClassifierService {
     const urlPath = this.getUrlPath(url);
     const titleLower = (title ?? '').toLowerCase();
 
+    try {
+      const hostname = new URL(url).hostname;
+      if (/24petconnect\.com|ws\.petango\.com|iframe\.adopets\.com|adopt\.adopets\.com/i.test(hostname)) {
+        return { pageType: 'ANIMAL_LISTING', isListingPage: true, isDetailPage: false, confidence: 0.95 };
+      }
+      if (/rescuegroups\.org/i.test(hostname) && /\/animals\/?$/i.test(urlPath)) {
+        return { pageType: 'ANIMAL_LISTING', isListingPage: true, isDetailPage: false, confidence: 0.9 };
+      }
+    } catch {}
+
     if (this.isFaqPage(urlPath, titleLower))
       return { pageType: 'FAQ', isListingPage: false, isDetailPage: false, confidence: 0.9 };
     if (this.isPolicyPage(urlPath, titleLower))
@@ -27,7 +37,7 @@ export class PageClassifierService {
 
     if (this.isAnimalListingByUrl(urlPath))
       return { pageType: 'ANIMAL_LISTING', isListingPage: true, isDetailPage: false, confidence: 0.9 };
-    if (this.isAnimalDetailByUrl(urlPath))
+    if (this.isAnimalDetailByUrl(urlPath, url))
       return { pageType: 'ANIMAL_DETAIL', isListingPage: false, isDetailPage: true, confidence: 0.9 };
 
     if (this.isAnimalListingBySignals(urlPath, titleLower, html, text))
@@ -54,12 +64,16 @@ export class PageClassifierService {
   }
 
   private isAboutPage(path: string, title: string): boolean {
-    return /^\/(about|our-story|our-mission|who-we-are|history|mission)(\/|$)/.test(path) ||
-      (/\babout\s*(us|our)\b/.test(title) && !/adopt|pet|animal|dog|cat/.test(title));
+    return (/^\/(about|our-story|our-mission|who-we-are|history|mission)(\/|$)/.test(path) ||
+      /\/(?:info\/)?(?:about|our-story|mission)(\/|$)/i.test(path) ||
+      /^\/info\/?$/i.test(path)) &&
+      (!/adopt|pet|animal|dog|cat/.test(title) || /\babout\s*(us|our)\b/.test(title));
   }
 
   private isContactPage(path: string, title: string): boolean {
-    return /^\/(contact|contact-us|get-in-touch|locations?)(\/|$)/.test(path) &&
+    return (/^\/(contact|contact-us|get-in-touch|locations?)(\/|$)/.test(path) ||
+      /\/(?:info\/)?contact(?:-us)?(?:\/|$)/i.test(path) ||
+      /\bcontact\s*(?:us|info|information)?\b/i.test(title)) &&
       !/adopt|pet|animal|dog|cat|faq/.test(path);
   }
 
@@ -73,20 +87,32 @@ export class PageClassifierService {
   }
 
   private isResourcePage(path: string, title: string): boolean {
+    if (/^\/(category|tag|author|archive)(\/|$)/i.test(path)) return true;
     return /^\/(resources|resource|clinic|services|programs|events?|news|blog|press|media|newsletter|careers?|jobs?|intern|volunteer|donate|donation|support|give|sponsor|membership|store|shop|cart|calendar|schedule)(\/|$)/.test(path) &&
       !/\/(dogs|cats|pets|animals|adopt)/.test(path);
   }
 
   private isNonAnimalPage(path: string, title: string): boolean {
-    return /^\/(foster|volunteer|donate|donation|give|support|sponsor|careers?|jobs?|intern|press|media|newsletter|store|shop|cart|calendar|schedule|events?|news|blog|board|governance|financials|annual-report|staff|team|groups|youth|requirements)(\/|$)/.test(path) &&
+    return /^\/(foster|volunteer|donate|donation|give|support|sponsor|careers?|jobs?|intern|press|media|newsletter|store|shop|cart|calendar|schedule|events?|news|blog|board|governance|financials|annual-report|staff|team|groups|youth|requirements|get-involved|ways-to-give|ways-to-help)(\/|$)/.test(path) &&
       !/\/(dogs|cats|pets|animals|adopt)/.test(path);
   }
 
-  private isAnimalDetailByUrl(path: string): boolean {
+  private isAnimalDetailByUrl(path: string, fullUrl: string): boolean {
     if (/\/(adopt|adoptable|available)\/(dogs|cats|pets|birds|other-animals)\/[a-z0-9]+-?[a-z0-9-]+\/?$/i.test(path)) return true;
     if (/\/(pet|animal|dog|cat|bird)s?\/[a-z0-9]+-[a-z0-9-]+\/?$/i.test(path)) return true;
     if (/\/(adopt|adoptable|available|pets?|animals?|dogs?|cats?)\/\d+\/?$/i.test(path)) return true;
     if (/\/(pet|animal|listing)[-_]?detail/i.test(path)) return true;
+    if (/\/(adopt|adoptable)\/details?\/\d+\/?$/i.test(path)) return true;
+    if (/\/(adopt|adoptable)\/details?\/[a-z0-9-]+\/?$/i.test(path)) return true;
+
+    try {
+      const parsed = new URL(fullUrl);
+      const query = parsed.search.toLowerCase();
+      if (/\/(adoptable|adopt|pet)s?\/pet\/?$/i.test(path) && /[?&](ss|id|pet_?id|animal_?id)=/i.test(query)) return true;
+      if (/[?&](pet_?id|animal_?id|id)=\d+/i.test(query) && /\/(adopt|pet|animal)/i.test(path)) return true;
+      if (/\/animals?\/detail\/?$/i.test(path) && /[?&]AnimalID=\d+/i.test(query)) return true;
+    } catch {}
+
     return false;
   }
 

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { LoadingSpinner, Badge, StatusBadge } from '@pet-central/ui';
+import { LoadingSpinner, Badge, StatusBadge, PetImage, useFailedMedia } from '@pet-central/ui';
 import { scanAnimals } from '@/lib/api';
 
 function InfoRow({ label, value }: { label: string; value: string | null | undefined | boolean }) {
@@ -42,6 +42,14 @@ export default function AnimalDetailPage() {
 
   const animal = query.data as Record<string, unknown> | undefined;
 
+  const allPhotos = (animal ? (animal.photoUrlsJson ?? animal.photoUrls ?? []) : []) as string[];
+  const attrs = (animal?.attributeJson ?? {}) as Record<string, unknown>;
+  const allVideoUrls = ((attrs.videoUrls ?? []) as string[]);
+  const allMedia = [...allPhotos, ...allVideoUrls];
+  const { valid: validMedia, markFailed } = useFailedMedia(allMedia);
+  const photos = allPhotos.filter(u => validMedia.includes(u));
+  const videoUrls = allVideoUrls.filter(u => validMedia.includes(u));
+
   if (query.isLoading) {
     return <div className="flex h-64 items-center justify-center"><LoadingSpinner size="lg" /></div>;
   }
@@ -49,15 +57,13 @@ export default function AnimalDetailPage() {
     return <div className="py-12 text-center text-gray-500">Animal not found</div>;
   }
 
-  const photos = (animal.photoUrlsJson ?? animal.photoUrls ?? []) as string[];
   const scan = animal.scan as Record<string, unknown> | undefined;
   const website = scan?.website as Record<string, unknown> | undefined;
   const sourcePage = animal.sourcePage as Record<string, unknown> | undefined;
   const detailPage = animal.detailPage as Record<string, unknown> | undefined;
   const animalType = String(animal.animalType ?? '').replace('SCAN_', '') || 'Unknown';
-  const attrs = (animal.attributeJson ?? {}) as Record<string, unknown>;
   const adoptionRequirements = (attrs.adoptionRequirements ?? []) as Array<{ type: string; description: string; value?: string }>;
-  const videoUrls = (attrs.videoUrls ?? []) as string[];
+  const safePhotoIdx = photos.length > 0 ? Math.min(photoIdx, photos.length - 1) : 0;
 
   return (
     <div className="space-y-6">
@@ -86,11 +92,11 @@ export default function AnimalDetailPage() {
               <div className="p-3 space-y-3">
                 <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
                   <img
-                    key={photoIdx}
-                    src={photos[photoIdx]}
+                    key={safePhotoIdx}
+                    src={photos[safePhotoIdx]}
                     alt={String(animal.name ?? 'Animal photo')}
                     className="absolute inset-0 h-full w-full object-cover z-10"
-                    onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+                    onError={() => { if (photos[safePhotoIdx]) markFailed(photos[safePhotoIdx]!); }}
                     onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = '1'; }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-sm pointer-events-none z-0">
@@ -113,7 +119,7 @@ export default function AnimalDetailPage() {
                         &#8250;
                       </button>
                       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 rounded-full bg-black/50 px-2.5 py-0.5 text-xs text-white">
-                        {photoIdx + 1} / {photos.length}
+                        {safePhotoIdx + 1} / {photos.length}
                       </div>
                     </>
                   )}
@@ -125,14 +131,14 @@ export default function AnimalDetailPage() {
                         key={i}
                         onClick={() => setPhotoIdx(i)}
                         className={`h-14 w-14 rounded-lg overflow-hidden shrink-0 border-2 transition-colors bg-gray-100 ${
-                          i === photoIdx ? 'border-brand-500' : 'border-transparent hover:border-gray-300'
+                          i === safePhotoIdx ? 'border-brand-500' : 'border-transparent hover:border-gray-300'
                         }`}
                       >
                         <img
                           src={url}
                           alt=""
                           className="h-full w-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+                          onError={() => markFailed(url)}
                         />
                       </button>
                     ))}
@@ -249,10 +255,9 @@ export default function AnimalDetailPage() {
                 {videoUrls.map((url, i) => {
                   const ytMatch = url.match(/(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([\w-]+)/);
                   if (ytMatch) {
+                    const videoId = ytMatch[1];
                     return (
-                      <div key={i} className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                        <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} className="h-full w-full" allowFullScreen title={`Video ${i + 1}`} />
-                      </div>
+                      <YouTubeEmbed key={i} videoId={videoId!} onUnavailable={() => markFailed(url)} />
                     );
                   }
                   return (
@@ -306,6 +311,52 @@ export default function AnimalDetailPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function YouTubeEmbed({ videoId, onUnavailable }: { videoId: string; onUnavailable: () => void }) {
+  const [status, setStatus] = useState<'checking' | 'available' | 'unavailable'>('checking');
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.ok) {
+          setStatus('available');
+        } else {
+          setStatus('unavailable');
+          onUnavailable();
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStatus('unavailable');
+          onUnavailable();
+        }
+      });
+    return () => { cancelled = true; };
+  }, [videoId, onUnavailable]);
+
+  if (status === 'checking') {
+    return (
+      <div className="aspect-video rounded-lg bg-gray-100 flex items-center justify-center">
+        <span className="text-sm text-gray-400">Checking video...</span>
+      </div>
+    );
+  }
+
+  if (status === 'unavailable') return null;
+
+  return (
+    <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+      <iframe
+        src={`https://www.youtube.com/embed/${videoId}`}
+        className="h-full w-full"
+        allowFullScreen
+        title="YouTube video"
+      />
     </div>
   );
 }

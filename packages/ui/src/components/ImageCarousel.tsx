@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
+import { useFailedMedia } from '../hooks/useFailedMedia';
 
 export interface ImageCarouselProps {
   images: { src: string; alt: string }[];
@@ -22,25 +23,31 @@ export function ImageCarousel({
   autoPlayInterval = 5000,
   className,
 }: ImageCarouselProps) {
+  const allSrcs = images.map((img) => img.src);
+  const { valid: validSrcs, markFailed } = useFailedMedia(allSrcs);
+  const validImages = images.filter((img) => validSrcs.includes(img.src));
+
   const [current, setCurrent] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
+  const safeCurrent = validImages.length > 0 ? Math.min(current, validImages.length - 1) : 0;
+
   const next = useCallback(() => {
-    setCurrent((prev) => (prev + 1) % images.length);
-  }, [images.length]);
+    setCurrent((prev) => (prev + 1) % Math.max(validImages.length, 1));
+  }, [validImages.length]);
 
   const prev = useCallback(() => {
-    setCurrent((prev) => (prev - 1 + images.length) % images.length);
-  }, [images.length]);
+    setCurrent((prev) => (prev - 1 + validImages.length) % Math.max(validImages.length, 1));
+  }, [validImages.length]);
 
   useEffect(() => {
-    if (autoPlay && images.length > 1) {
+    if (autoPlay && validImages.length > 1) {
       timerRef.current = setInterval(next, autoPlayInterval);
       return () => clearInterval(timerRef.current);
     }
-  }, [autoPlay, autoPlayInterval, images.length, next]);
+  }, [autoPlay, autoPlayInterval, validImages.length, next]);
 
-  if (images.length === 0) {
+  if (validImages.length === 0) {
     return (
       <div className={clsx('flex items-center justify-center bg-gray-100 rounded-card', aspectRatio, className)}>
         <span className="text-4xl text-gray-300">No images</span>
@@ -51,12 +58,12 @@ export function ImageCarousel({
   return (
     <div className={clsx('relative group', className)}>
       <div className={clsx('relative overflow-hidden rounded-card', aspectRatio)}>
-        {images.map((image, i) => (
+        {validImages.map((image, i) => (
           <div
-            key={i}
+            key={image.src}
             className={clsx(
               'absolute inset-0 transition-opacity duration-500',
-              i === current ? 'opacity-100' : 'opacity-0 pointer-events-none',
+              i === safeCurrent ? 'opacity-100' : 'opacity-0 pointer-events-none',
             )}
           >
             <img
@@ -64,11 +71,12 @@ export function ImageCarousel({
               alt={image.alt}
               className="h-full w-full object-cover"
               loading={i === 0 ? 'eager' : 'lazy'}
+              onError={() => markFailed(image.src)}
             />
           </div>
         ))}
 
-        {images.length > 1 && (
+        {validImages.length > 1 && (
           <>
             <button
               onClick={prev}
@@ -92,15 +100,15 @@ export function ImageCarousel({
         )}
       </div>
 
-      {showDots && images.length > 1 && (
+      {showDots && validImages.length > 1 && (
         <div className="flex items-center justify-center gap-1.5 mt-3">
-          {images.map((_, i) => (
+          {validImages.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
               className={clsx(
                 'rounded-full transition-all duration-200',
-                i === current
+                i === safeCurrent
                   ? 'w-6 h-2 bg-brand-600'
                   : 'w-2 h-2 bg-gray-300 hover:bg-gray-400',
               )}
@@ -110,18 +118,23 @@ export function ImageCarousel({
         </div>
       )}
 
-      {showThumbnails && images.length > 1 && (
+      {showThumbnails && validImages.length > 1 && (
         <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-          {images.map((image, i) => (
+          {validImages.map((image, i) => (
             <button
-              key={i}
+              key={image.src}
               onClick={() => setCurrent(i)}
               className={clsx(
                 'flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden ring-2 transition-all',
-                i === current ? 'ring-brand-500 ring-offset-1' : 'ring-transparent hover:ring-gray-300',
+                i === safeCurrent ? 'ring-brand-500 ring-offset-1' : 'ring-transparent hover:ring-gray-300',
               )}
             >
-              <img src={image.src} alt={image.alt} className="h-full w-full object-cover" />
+              <img
+                src={image.src}
+                alt={image.alt}
+                className="h-full w-full object-cover"
+                onError={() => markFailed(image.src)}
+              />
             </button>
           ))}
         </div>

@@ -243,8 +243,16 @@ export class OrganizationExtractorService {
     }
 
     const text = this.stripTags(html);
-    const addrMatch = text.match(/(\d{1,5}\s+[A-Z][a-zA-Z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Circle|Cir|Court|Ct|Place|Pl)[.,]?\s*(?:Suite|Ste|#|Apt)?\s*\d*[.,]?\s*[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\s+\d{5})/);
+    const addrMatch = text.match(/(\d{1,5}\s+[A-Z][a-zA-Z\s.]+(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd|Lane|Ln|Way|Circle|Cir|Court|Ct|Place|Pl)\.?[,\s]+(?:Suite|Ste|#|Apt\.?)?\s*\d*[,\s]+[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)/);
     if (addrMatch) return addrMatch[1]!.trim();
+
+    const looseAddr = text.match(/(\d{1,5}\s+[A-Z][a-zA-Z\s.]+[,\s]+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?,\s*[A-Z]{2}\s+\d{5})/);
+    if (looseAddr) return looseAddr[1]!.trim();
+
+    const cityStateZip = text.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)/);
+    if (cityStateZip && !/Select|Choose|Enter/.test(cityStateZip[1]!)) {
+      return cityStateZip[1]!.trim();
+    }
 
     return undefined;
   }
@@ -259,6 +267,14 @@ export class OrganizationExtractorService {
     if (key) {
       const m = html.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`));
       if (m) return this.clean(m[1]!);
+    }
+
+    const text = this.stripTags(html);
+    const fullAddr = text.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\s+(\d{5})/);
+    if (fullAddr) {
+      if (part === 'city') return fullAddr[1]!.trim();
+      if (part === 'state') return fullAddr[2]!.trim();
+      if (part === 'postalCode') return fullAddr[3]!.trim();
     }
     return undefined;
   }

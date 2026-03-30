@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, LoadingSpinner } from '@pet-central/ui';
+import { Badge, Button, LoadingSpinner, PetImage } from '@pet-central/ui';
 import Link from 'next/link';
 import { listings } from '@/lib/api';
 import { trackViewedListing } from '@/lib/kiosk-session';
@@ -49,17 +49,13 @@ export default function KioskListingDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="overflow-hidden rounded-card shadow-card">
-          {primaryImage ? (
-            <img
-              src={primaryImage}
-              alt={String(pet.name ?? 'Pet')}
-              className="h-full min-h-[400px] w-full object-cover"
-            />
-          ) : (
-            <div className="flex min-h-[400px] items-center justify-center bg-gradient-to-br from-brand-50 to-purple-50">
-              <PawIcon className="h-24 w-24 text-brand-200" />
-            </div>
-          )}
+          <PetImage
+            src={primaryImage}
+            alt={String(pet.name ?? 'Pet')}
+            className="h-full min-h-[400px] w-full object-cover"
+            fallbackClassName="min-h-[400px] w-full"
+            fallback={<PawIcon className="h-24 w-24 text-brand-200" />}
+          />
         </div>
 
         <div className="space-y-6">

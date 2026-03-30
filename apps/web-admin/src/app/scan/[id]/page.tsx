@@ -10,6 +10,7 @@ import {
   Badge,
   DataTable,
   Pagination,
+  PetImage,
 } from '@pet-central/ui';
 import type { Column } from '@pet-central/ui';
 import { scans, scanQuality, scanPromotion } from '@/lib/api';
@@ -164,11 +165,12 @@ export default function ScanDetailPage() {
         const photos = (row.photoUrls ?? []) as string[];
         if (photos.length === 0) return <span className="text-gray-400 text-xs">—</span>;
         return (
-          <img
+          <PetImage
             src={photos[0]}
             alt=""
             className="h-10 w-10 rounded-lg object-cover bg-gray-100"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            fallbackClassName="h-10 w-10 rounded-lg"
+            fallback={<span className="text-gray-400 text-xs">—</span>}
           />
         );
       },
@@ -306,7 +308,7 @@ export default function ScanDetailPage() {
                 <div key={idx} className="border-t border-gray-100 p-6 space-y-4">
                   <div className="flex items-start gap-4">
                     {String(jp.logoUrl ?? '') !== '' && (
-                      <img src={String(jp.logoUrl)} alt="Logo" className="h-16 w-16 rounded-lg object-contain bg-gray-50 shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      <PetImage src={String(jp.logoUrl)} alt="Logo" className="h-16 w-16 rounded-lg object-contain bg-gray-50 shrink-0" fallbackClassName="hidden" fallback={null} />
                     )}
                     <div>
                       <h3 className="text-lg font-bold text-gray-900">{String(entity.name)}</h3>
@@ -355,7 +357,7 @@ export default function ScanDetailPage() {
                   {imageUrls.length > 0 && (
                     <div>
                       <p className="text-xs text-gray-400 uppercase font-medium mb-1">Images</p>
-                      <div className="flex gap-2 overflow-x-auto">{imageUrls.slice(0, 6).map((url, i) => <img key={i} src={String(url)} alt="" className="h-20 w-28 rounded-lg object-cover shrink-0 bg-gray-100" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />)}</div>
+                      <div className="flex gap-2 overflow-x-auto">{imageUrls.slice(0, 6).map((url, i) => <PetImage key={i} src={String(url)} alt="" className="h-20 w-28 rounded-lg object-cover shrink-0 bg-gray-100" fallbackClassName="hidden" fallback={null} />)}</div>
                     </div>
                   )}
                 </div>

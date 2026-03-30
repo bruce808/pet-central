@@ -22,3 +22,6 @@ export { PriceTag, type PriceTagProps } from './components/PriceTag';
 export { FilterChip, type FilterChipProps } from './components/FilterChip';
 export { Tabs, type TabsProps, type TabItem } from './components/Tabs';
 export { Tooltip, type TooltipProps } from './components/Tooltip';
+
+export { PetImage, type PetImageProps } from './components/PetImage';
+export { useFailedMedia, type UseFailedMediaReturn } from './hooks/useFailedMedia';

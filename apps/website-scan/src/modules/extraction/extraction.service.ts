@@ -205,6 +205,12 @@ export class ExtractionService {
     const minConfidence = 0.70;
     const allowedTypes = ['SCAN_DOG', 'SCAN_CAT', 'SCAN_BIRD'];
 
+    const isWidgetPage = pageUrl && /24petconnect\.com|petango\.com|adopets\.com|shelterluv\.com|rescuegroups\.org/i.test(pageUrl);
+    const isAdoptionPage = pageUrl && /\/(adopt|adoptable|pet|animal|dog|cat|available)/i.test(pageUrl);
+    if (!isWidgetPage && !isAdoptionPage && !classification.isListingPage && !classification.isDetailPage) {
+      return [];
+    }
+
     if (classification.isListingPage) {
       const candidates = this.animalExtractor.extractFromListingPage(html, markdown, pageUrl ?? '');
       for (const candidate of candidates) {

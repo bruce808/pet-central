@@ -1,4 +1,24 @@
 export interface SiteExtractionConfig {
+  rendering?: {
+    requiresJs?: boolean;
+    waitForSelector?: string;
+    waitMs?: number;
+    blockResources?: string[];
+  };
+  fields?: {
+    nameSelector?: string;
+    breedSelector?: string;
+    sexSelector?: string;
+    ageSelector?: string;
+    descriptionSelector?: string;
+    idSelector?: string;
+    feeSelector?: string;
+    weightSelector?: string;
+    nameFromMarkdownPattern?: string;
+    breedFromMarkdownPattern?: string;
+    sexFromMarkdownPattern?: string;
+    ageFromMarkdownPattern?: string;
+  };
   gallery?: {
     imageSelector?: string;
     imageSrcAttribute?: string;
@@ -106,6 +126,8 @@ export const APA_CONFIG: SiteExtractionConfig = {
 export function mergeConfigs(base: SiteExtractionConfig, override?: SiteExtractionConfig | null): SiteExtractionConfig {
   if (!override) return base;
   return {
+    rendering: override.rendering ?? base.rendering,
+    fields: override.fields ? { ...base.fields, ...override.fields } : base.fields,
     gallery: { ...base.gallery, ...override.gallery },
     cards: {
       selectors: override.cards?.selectors ?? base.cards?.selectors,

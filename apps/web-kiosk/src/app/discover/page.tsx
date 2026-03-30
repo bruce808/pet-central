@@ -3,7 +3,7 @@
 import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Button, LoadingSpinner } from '@pet-central/ui';
+import { Card, Button, LoadingSpinner, PetImage } from '@pet-central/ui';
 import Link from 'next/link';
 import { listings } from '@/lib/api';
 import { trackActivity, updateSession } from '@/lib/kiosk-session';
@@ -256,17 +256,13 @@ function DiscoverContent() {
                   <Link key={String(listing.id)} href={`/listings/${String(listing.id)}`} className="group">
                     <div className="overflow-hidden rounded-card border border-gray-100 shadow-card transition-all duration-card hover:-translate-y-0.5 hover:shadow-card-hover">
                       <div className="aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-brand-50 to-purple-50">
-                        {pet.photoUrl ? (
-                          <img
-                            src={String(pet.photoUrl)}
-                            alt={String(pet.name ?? 'Pet')}
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <PawIcon className="h-16 w-16 text-brand-200" />
-                          </div>
-                        )}
+                        <PetImage
+                          src={pet.photoUrl ? String(pet.photoUrl) : null}
+                          alt={String(pet.name ?? 'Pet')}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          fallbackClassName="h-full w-full"
+                          fallback={<PawIcon className="h-16 w-16 text-brand-200" />}
+                        />
                       </div>
                       <div className="bg-white p-5">
                         <div className="flex items-start justify-between">

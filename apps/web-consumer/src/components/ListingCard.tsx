@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Card, Badge, TrustShield } from '@pet-central/ui';
+import { Card, Badge, TrustShield, PetImage } from '@pet-central/ui';
 
 interface ListingCardProps {
   listing: Record<string, any>;
@@ -48,17 +48,17 @@ export function ListingCard({ listing }: ListingCardProps) {
     <Link href={`/listings/${listing.id}`} className="group block">
       <Card padding="none" hover className="overflow-hidden">
         <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={listing.title}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand-50 to-purple-50 text-5xl text-gray-300">
-              🐾
-            </div>
-          )}
+          <PetImage
+            src={imageUrl}
+            alt={listing.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fallbackClassName="h-full w-full"
+            fallback={
+              <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand-50 to-purple-50 text-5xl text-gray-300">
+                🐾
+              </div>
+            }
+          />
           {adoptionType === 'ADOPTION' && (
             <div className="absolute left-3 top-3">
               <Badge variant="info" size="sm">Adopt</Badge>

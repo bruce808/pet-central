@@ -79,6 +79,202 @@ export class AnimalExtractorService {
     'domestic medium hair','calico','tortoiseshell','tuxedo','orange tabby',
   ];
 
+  extractFromApiData(apiData: unknown[], sourceUrl: string): AnimalCandidate[] {
+    const candidates: AnimalCandidate[] = [];
+
+    for (const apiResponse of apiData) {
+      const items = this.extractAnimalArray(apiResponse);
+      if (items.length > 0 && candidates.length === 0) {
+        const firstItem = items[0]!;
+        const keys = Object.keys(firstItem).sort();
+        const sample: Record<string, string> = {};
+        for (const k of keys.slice(0, 25)) {
+          const v = firstItem[k];
+          if (typeof v === 'string') sample[k] = v.substring(0, 60);
+          else if (typeof v === 'number' || typeof v === 'boolean') sample[k] = String(v);
+          else if (v === null) sample[k] = 'null';
+          else if (Array.isArray(v)) sample[k] = `array[${v.length}]`;
+          else if (typeof v === 'object') sample[k] = `{${Object.keys(v as Record<string, unknown>).slice(0, 8).join(',')}}`;
+        }
+        this.logger.log(`API SCHEMA (${keys.length} keys): ${JSON.stringify(sample)}`);
+      }
+      for (const item of items) {
+        const candidate = this.parseApiAnimal(item, sourceUrl);
+        if (candidate && this.isValidAnimalCandidate(candidate)) {
+          candidates.push(candidate);
+        } else if (items.length > 0 && candidates.length === 0) {
+          const keys = Object.keys(item).sort();
+          const sample: Record<string, string> = {};
+          for (const k of keys.slice(0, 20)) {
+            const v = item[k];
+            if (typeof v === 'string') sample[k] = v.substring(0, 50);
+            else if (typeof v === 'number' || typeof v === 'boolean') sample[k] = String(v);
+            else if (v === null) sample[k] = 'null';
+            else if (Array.isArray(v)) sample[k] = `array[${v.length}]`;
+            else if (typeof v === 'object') sample[k] = `{${Object.keys(v as Record<string, unknown>).slice(0, 5).join(',')}}`;
+          }
+          this.logger.log(`API animal schema (first item, ${keys.length} keys): ${JSON.stringify(sample)}`);
+        }
+      }
+    }
+
+    this.logger.log(`Extracted ${candidates.length} animals from ${apiData.length} API response(s)`);
+    return candidates;
+  }
+
+  private extractAnimalArray(data: unknown): Record<string, unknown>[] {
+    if (Array.isArray(data)) {
+      const items = data.filter(item => typeof item === 'object' && item !== null) as Record<string, unknown>[];
+      if (items.length > 0) {
+        const first = items[0]!;
+        const keys = Object.keys(first);
+        if (keys.length === 1 && typeof first[keys[0]!] === 'object') {
+          return items.map(item => (item as Record<string, unknown>)[keys[0]!] as Record<string, unknown>).filter(Boolean);
+        }
+      }
+      return items;
+    }
+    if (typeof data === 'object' && data !== null) {
+      for (const key of Object.keys(data)) {
+        const val = (data as Record<string, unknown>)[key];
+        if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+          return this.extractAnimalArray(val);
+        }
+      }
+      for (const key of Object.keys(data)) {
+        const val = (data as Record<string, unknown>)[key];
+        if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+          const nested = this.extractAnimalArray(val);
+          if (nested.length > 0) return nested;
+        }
+      }
+    }
+    return [];
+  }
+
+  private parseApiAnimal(item: Record<string, unknown>, sourceUrl: string): AnimalCandidate | null {
+    const getFlat = (obj: Record<string, unknown>, keys: string[]): string | undefined => {
+      for (const k of keys) {
+        for (const actualKey of Object.keys(obj)) {
+          if (actualKey.toLowerCase().replace(/[_-]/g, '') === k.toLowerCase().replace(/[_-]/g, '')) {
+            const val = obj[actualKey];
+            if (typeof val === 'string' && val.trim()) return val.trim();
+            if (typeof val === 'number') return String(val);
+            if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+              const nested = val as Record<string, unknown>;
+              const nestedName = nested.name ?? nested.label ?? nested.value ?? nested.title;
+              if (typeof nestedName === 'string') return nestedName.trim();
+            }
+          }
+        }
+      }
+      return undefined;
+    };
+
+    const get = (keys: string[]): string | undefined => {
+      const cfgMapping = this.config.apiFieldMapping;
+      const result = getFlat(item, keys);
+      if (result) return result;
+      for (const nested of cfgMapping?.nestedKeys ?? ['pet', '_formatted', 'attributes', 'details']) {
+        if (item[nested] && typeof item[nested] === 'object') {
+          const fromNested = getFlat(item[nested] as Record<string, unknown>, keys);
+          if (fromNested) return fromNested;
+        }
+      }
+      return undefined;
+    };
+
+    const getBool = (keys: string[]): boolean | undefined => {
+      const allKeys = [...Object.keys(item), ...(item.pet && typeof item.pet === 'object' ? Object.keys(item.pet as Record<string, unknown>) : [])];
+      const allObj = { ...item, ...(item.pet && typeof item.pet === 'object' ? item.pet as Record<string, unknown> : {}) };
+      for (const k of keys) {
+        for (const actualKey of allKeys) {
+          if (actualKey.toLowerCase().replace(/[_-]/g, '').includes(k.toLowerCase().replace(/[_-]/g, ''))) {
+            const val = (allObj as Record<string, unknown>)[actualKey];
+            if (typeof val === 'boolean') return val;
+            if (val === 'yes' || val === 'Yes' || val === 'true') return true;
+            if (val === 'no' || val === 'No' || val === 'false') return false;
+          }
+        }
+      }
+      return undefined;
+    };
+
+    const cfgM = this.config.apiFieldMapping;
+    const name = get(cfgM?.name ?? ['name', 'pet_name', 'animal_name', 'Name', 'petName', 'animalName']);
+    if (!name || name.length < 2 || name.length > 50) return null;
+    if (this.isBlockedName(name)) return null;
+
+    const rawType = get(cfgM?.species ?? ['species', 'animal_type', 'animalType', 'type', 'Species', 'petType', 'pet_type', 'species_key', 'speciesKey'])?.toLowerCase();
+    let animalType: string | undefined;
+    if (rawType?.includes('dog') || rawType?.includes('canine')) animalType = 'SCAN_DOG';
+    else if (rawType?.includes('cat') || rawType?.includes('feline')) animalType = 'SCAN_CAT';
+    else if (rawType?.includes('bird')) animalType = 'SCAN_BIRD';
+    else if (rawType?.includes('rabbit') || rawType?.includes('hamster') || rawType?.includes('guinea')) animalType = 'SCAN_OTHER';
+
+    const breed = get(cfgM?.breed ?? ['breed', 'primary_breed', 'primaryBreed', 'breedPrimary', 'breed_primary', 'Breed', 'breed_primary_name', 'breedPrimaryName']);
+    const sex = this.normalizeSex(get(cfgM?.sex ?? ['sex', 'gender', 'Sex', 'Gender', 'sex_key', 'sexKey']) ?? null);
+    const ageRaw = get(cfgM?.age ?? ['age', 'age_text', 'ageText', 'Age', 'ageString', 'age_string', 'age_key', 'ageKey']);
+    const age = ageRaw ? ageRaw.charAt(0).toUpperCase() + ageRaw.slice(1).toLowerCase() : undefined;
+    const description = get(cfgM?.description ?? ['description', 'bio', 'about', 'details', 'Description', 'story', 'notes']);
+    const weight = get(cfgM?.weight ?? ['weight', 'Weight', 'currentWeight', 'weight_number']);
+    const color = get(cfgM?.color ?? ['color', 'Color', 'primaryColor', 'colorPattern', 'color_key']);
+    const externalId = get(cfgM?.externalId ?? ['id', 'animal_id', 'animalId', 'petId', 'pet_id', 'ID', 'externalId', 'code']);
+    const size = get(cfgM?.size ?? ['size', 'size_key', 'sizeKey']);
+
+    const photoUrls: string[] = [];
+    const allObj: Record<string, unknown> = { ...item };
+    for (const nested of cfgM?.nestedKeys ?? ['pet', '_formatted', 'attributes', 'details']) {
+      if (item[nested] && typeof item[nested] === 'object') Object.assign(allObj, item[nested] as Record<string, unknown>);
+    }
+    const photoKeys = cfgM?.photo ?? ['photo', 'photos', 'image', 'images', 'photoUrl', 'photo_url', 'imageUrl', 'image_url', 'primaryPhoto', 'main_photo', 'Pictures', 'Media', 'picture', 'pictures', 'avatar', 'thumbnail'];
+    for (const k of Object.keys(allObj)) {
+      if (photoKeys.some(pk => k.toLowerCase().includes(pk.toLowerCase()))) {
+        const val = (allObj as Record<string, unknown>)[k];
+        if (typeof val === 'string' && /^https?:\/\//.test(val)) photoUrls.push(val);
+        if (Array.isArray(val)) {
+          for (const v of val) {
+            if (typeof v === 'string' && /^https?:\/\//.test(v)) photoUrls.push(v);
+            if (typeof v === 'object' && v !== null) {
+              const url = (v as Record<string, unknown>).url ?? (v as Record<string, unknown>).src ?? (v as Record<string, unknown>).full ?? (v as Record<string, unknown>).large ?? (v as Record<string, unknown>).medium;
+              if (typeof url === 'string' && /^https?:\/\//.test(url)) photoUrls.push(url);
+            }
+          }
+        }
+        if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+          const url = (val as Record<string, unknown>).full ?? (val as Record<string, unknown>).large ?? (val as Record<string, unknown>).medium ?? (val as Record<string, unknown>).small;
+          if (typeof url === 'string' && /^https?:\/\//.test(url)) photoUrls.push(url);
+        }
+      }
+    }
+
+    return {
+      name: this.cleanAnimalName(name),
+      listingExternalId: externalId,
+      listingUrl: sourceUrl,
+      animalType,
+      breed,
+      sex,
+      ageText: age,
+      ageCategory: this.inferAgeCategory(age ?? null),
+      size,
+      color,
+      weight,
+      description,
+      adoptionStatus: get(['status', 'adoption_status', 'adoptionStatus', 'availability'])?.toLowerCase().includes('adopt') ? 'available' : undefined,
+      goodWithChildren: getBool(['goodWithChildren', 'good_with_children', 'kids']),
+      goodWithDogs: getBool(['goodWithDogs', 'good_with_dogs']),
+      goodWithCats: getBool(['goodWithCats', 'good_with_cats']),
+      houseTrained: getBool(['houseTrained', 'house_trained', 'housebroken']),
+      spayedNeutered: getBool(['spayedNeutered', 'spayed_neutered', 'altered', 'fixed']),
+      vaccinated: getBool(['vaccinated', 'shots_current', 'shotsCurrent']),
+      photoUrls,
+      videoUrls: [],
+      adoptionRequirements: [],
+      confidence: 0.92,
+    };
+  }
+
   extractFromListingPage(
     html: string,
     markdown: string,
@@ -116,6 +312,10 @@ export class AnimalExtractorService {
       const ageMatches = [...html.matchAll(/class="text_Age[^"]*"[^>]*>([^<]+)</gi)];
       const typeMatches = [...html.matchAll(/class="text_Animaltype[^"]*"[^>]*>([^<]+)</gi)];
       const locationMatches = [...html.matchAll(/class="text_Locatedat[^"]*"[^>]*>([^<]+)</gi)];
+      const imageMatches = [...html.matchAll(/<img[^>]*src="(\/image\/\d+)"[^>]*>/gi)];
+
+      let imgBase = '';
+      try { imgBase = new URL(sourceUrl).origin; } catch {}
 
       for (let i = 0; i < nameMatches.length; i++) {
         const rawName = nameMatches[i]![1]!.trim();
@@ -133,6 +333,7 @@ export class AnimalExtractorService {
         else if (rawType === 'bird') animalType = 'SCAN_BIRD';
         else if (rawType) animalType = 'SCAN_OTHER';
 
+        const photoUrl = imageMatches[i]?.[1] ? `${imgBase}${imageMatches[i]![1]}` : undefined;
         candidates.push({
           name,
           listingExternalId: idMatch?.[1],
@@ -143,7 +344,7 @@ export class AnimalExtractorService {
           ageText: age,
           ageCategory: this.inferAgeCategory(age ?? null),
           organizationName: locationMatches[i]?.[1]?.trim(),
-          photoUrls: [],
+          photoUrls: photoUrl && !photoUrl.includes('No_pic') ? [photoUrl] : [],
           videoUrls: [],
           adoptionRequirements: [],
           adoptionStatus: 'available',
@@ -232,7 +433,7 @@ export class AnimalExtractorService {
     const sex = extractMdField(cfg.fields?.sexFromMarkdownPattern) ?? this.extractSex(combinedText) ?? undefined;
     const ageText = extractMdField(cfg.fields?.ageFromMarkdownPattern) ?? this.extractAge(combinedText);
     const animalType = this.inferAnimalType(combinedText);
-    let photoUrls = this.extractAnimalPhotos(html, sourceUrl);
+    let photoUrls = this.extractAnimalPhotos(html, sourceUrl, name ?? undefined);
     if (photoUrls.length === 0 && markdown) {
       const mdImgs = [...markdown.matchAll(/\(https?:\/\/[^)]+\.(?:jpg|jpeg|png|webp)(?:\?[^)]*)?\)/gi)]
         .map(m => m[0].slice(1, -1))
@@ -304,7 +505,7 @@ export class AnimalExtractorService {
     if (this.isBlockedName(name)) return null;
 
     const animalType = this.inferAnimalType(combinedText);
-    const photoUrls = this.extractAnimalPhotos(html, sourceUrl);
+    const photoUrls = this.extractAnimalPhotos(html, sourceUrl, name ?? undefined);
     const videoUrls = this.extractAnimalVideos(html, sourceUrl);
 
     const breed = this.extractBreed(combinedText);
@@ -313,7 +514,8 @@ export class AnimalExtractorService {
     const ageText = this.extractAge(combinedText);
     const description = this.extractAnimalDescription(html, markdown);
     const requirements = this.extractAdoptionRequirements(combinedText);
-    const location = this.extractLocation(combinedText);
+    // Location extraction disabled - produces false positives by picking up org address
+    // Animal location should come from the org entity instead
     const externalId = this.extractExternalId(html, sourceUrl);
 
     const animalSpecificText = this.stripOrgBoilerplate(combinedText);
@@ -534,8 +736,9 @@ export class AnimalExtractorService {
   }
 
   private isBlockedName(name: string): boolean {
-    return /\b(adopt(ion|able)?|volunteer|donat(e|ion)|learn|about|contact|footer|header|nav(igation)?|home|menu|search|login|register|sign.?up|spay|neuter|give\s*up|lost\s*[&a]|found\s*(pet|animal)|get\s*involved|program|event|news|blog|store|shop|cart|hours|location|map|direction|team|staff|board|career|job|intern|media|press|newsletter|subscribe|forms?|calendar|schedule|clinic|surgery|vaccine|micro.?chip|license|permit|report|surrender|intake|return|transfer|transport|resources?|services?|polic(y|ies)|terms|privacy|sitemap|gallery|support|help|faq|question|feedback|testimonial|review|foster|rehom(e|ing)|available\s*(dogs|cats|pets|animals)|special\s*needs|in\s*training|featured|our\s*(mission|story|team|staff|history|sponsors?)|ways?\s*to|how\s*to|what\s*is|why\s*(choose|adopt)|reduce\s*stress|increase\s*self|emotional\s*fulfillment|provides?\s*emotional|other\s*available|making\s*a\s*difference|saving\s*lives?|join\s*(us|our)|become\s*a|start\s*(your|here)|explore|discover|view\s*all|see\s*all|browse|more\s*info|read\s*more|learn\s*more|click\s*here|apply\s*now|submit|send|share|print|download|upload|subscribe|unsubscribe|copyright|all\s*rights|powered\s*by|find\s*your|perfect\s*match|requirements|sponsors?|partners?|supporters?|donors?|wishlist|wish\s*list|filter\s*by|sort\s*by|show\s*results|in\s+\d{4}|since\s+\d{4}|lives?\s*saved|adoptions?|pets?\s*alive|humane\s*society|animal\s*shelter|rescue\s*league|spca)\b/i.test(name) ||
-      /[.!?]$/.test(name.trim());
+    return /\b(adopt(ion|able)?|volunteer|donat(e|ion)|learn|about|contact|footer|header|nav(igation)?|home|menu|search|login|register|sign.?up|spay|neuter|give\s*up|lost\s*[&a]|found\s*(pet|animal)|get\s*involved|program|event|news|blog|store|shop|cart|hours|location|map|direction|team|staff|board|career|job|intern|media|press|newsletter|subscribe|forms?|calendar|schedule|clinic|surgery|vaccine|micro.?chip|license|permit|report|surrender|intake|return|transfer|transport|resources?|services?|polic(y|ies)|terms|privacy|sitemap|gallery|support|help|faq|question|feedback|testimonial|review|foster|rehom(e|ing)|available\s*(dogs|cats|pets|animals)|special\s*needs|in\s*training|featured|our\s*(mission|story|team|staff|history|sponsors?)|ways?\s*to|how\s*to|what\s*is|why\s*(choose|adopt)|reduce\s*stress|increase\s*self|emotional\s*fulfillment|provides?\s*emotional|other\s*available|making\s*a\s*difference|saving\s*lives?|join\s*(us|our)|become\s*a|start\s*(your|here)|explore|discover|view\s*all|see\s*all|browse|more\s*info|read\s*more|learn\s*more|click\s*here|apply\s*now|submit|send|share|print|download|upload|subscribe|unsubscribe|copyright|all\s*rights|powered\s*by|find\s*your|perfect\s*match|requirements|sponsors?|partners?|supporters?|donors?|wishlist|wish\s*list|filter\s*by|sort\s*by|show\s*results|in\s+\d{4}|since\s+\d{4}|lives?\s*saved|adoptions?|pets?\s*alive|humane\s*society|animal\s*shelter|rescue\s*league|spca|general\s*application|pet\s*detail|working\s*cats|lavender\s*field)\b/i.test(name) ||
+      /[.!?]$/.test(name.trim()) ||
+      /^(dog|cat|pet|animal)\s+(in|on|at|for|of|the)\s+/i.test(name);
   }
 
   private extractAnimalName(html: string): string | null {
@@ -584,7 +787,8 @@ export class AnimalExtractorService {
         .filter(p => p.length > 50 && p.length < 2000)
         .filter(p => !/^\s*-\s/.test(p))
         .filter(p => (p.match(/^\s*-/gm) || []).length < 3)
-        .filter(p => /\b(dog|cat|pet|animal|adopt|love|play|friendly|sweet|gentle|energetic|loyal|companion|family|home|cuddle|walk|personality|temperament|loves?|enjoy|favorite|training|behavior|needs?|he\b|she\b|his\b|her\b)\b/i.test(p));
+        .filter(p => /\b(dog|cat|pet|animal|adopt|love|play|friendly|sweet|gentle|energetic|loyal|companion|family|home|cuddle|walk|personality|temperament|loves?|enjoy|favorite|training|behavior|needs?|he\b|she\b|his\b|her\b)\b/i.test(p))
+        .filter(p => !/\b(walk-in|first-come|first-served|adoption fee|hours of operation|click here|sign up|subscribe|newsletter|login|register|remember your favorite|other pictures of|click to see larger|print an adoption flyer|powered by)\b/i.test(p));
       if (mdParagraphs.length > 0) return mdParagraphs.join('\n\n').slice(0, 5000);
     }
 
@@ -610,9 +814,10 @@ export class AnimalExtractorService {
     return null;
   }
 
-  private extractAnimalPhotos(html: string, sourceUrl: string): string[] {
+  private extractAnimalPhotos(html: string, sourceUrl: string, petName?: string): string[] {
     const seen = new Set<string>();
     const photos: string[] = [];
+    const nameLower = petName?.toLowerCase();
 
     const excludePatterns = this.config.excludeImagePatterns ?? [];
     const excludeRegex = excludePatterns.length > 0
@@ -683,6 +888,10 @@ export class AnimalExtractorService {
     let m;
     while ((m = imgRegex.exec(mainContent)) !== null) {
       const tag = m[0];
+      if (nameLower) {
+        const alt = (tag.match(/alt=["']([^"']+)["']/i) || [])[1]?.toLowerCase() ?? '';
+        if (alt.length > 1 && !alt.includes(nameLower) && /[a-z]{2,}/i.test(alt)) continue;
+      }
       const srcset = (tag.match(/srcset=["']([^"']+)["']/i) || [])[1];
       const best = srcset ? this.pickLargestFromSrcset(srcset) : null;
 
@@ -980,7 +1189,12 @@ export class AnimalExtractorService {
 
   private extractColor(text: string): string | null {
     const labeled = text.match(/\b(?:color|colou?ring|markings?)\s*[:]\s*([^\n,|]{2,40})/i);
-    if (labeled) return this.cleanHtml(labeled[1]!.trim());
+    if (labeled) {
+      let color = this.cleanHtml(labeled[1]!.trim());
+      color = color.replace(/\s*(?:Location|Breed|Sex|Gender|Weight|Species|Size|Status|Declawed|Housetrained|Obedience|Spayed|Neutered|Good\s*with|Current).*$/i, '').trim();
+      color = color.replace(/&nbs.*$/i, '').trim();
+      return color || null;
+    }
 
     const descPattern = text.match(/(?:is\s+(?:a\s+)?|has\s+(?:a\s+)?)(?:beautiful\s+|gorgeous\s+|stunning\s+)?(black|white|brown|tan|golden|cream|gray|grey|brindle|merle|spotted|tricolor|fawn|sable|chocolate|orange|yellow|silver|red|blue)(?:\s*(?:and|&|\/)\s*(black|white|brown|tan|golden|cream|gray|grey|brindle|merle|spotted|tricolor|fawn|sable|chocolate|orange|yellow|silver|red|blue))?\s+(?:colored?\s+)?(?:dog|cat|pup|kitten|boy|girl|pet|mix)/i);
     if (descPattern) {

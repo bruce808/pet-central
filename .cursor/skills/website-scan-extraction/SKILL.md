@@ -241,7 +241,27 @@ After all pages are crawled, the orchestrator calls `generateOrgDescriptionWithL
 2. Sends to GPT-4o-mini with a professional copywriter prompt
 3. Updates the entity's `summaryDescription`
 
-## Admin UI
+## Known limitations
+
+Several issues require architectural changes beyond the current HTML/markdown regex extraction:
+
+### JS-rendered pet content
+Oregon Humane, SPCALA, Adopets, Petango, and Petfinder all render pet details via JavaScript. The current Playwright integration renders pages but some sites use:
+- **CSS-in-JS with hashed class names** (Adopets, Petfinder) — CSS selectors change per build
+- **API-loaded content** (Petango) — pet data loads via XHR after page load
+- **Shadow DOM or iframes** — content isolated from main DOM
+
+**Recommended approach**: Intercept XHR/API calls during Playwright navigation and extract structured data from API responses instead of parsing rendered HTML. Most SPA platforms make REST API calls like `/api/animals?shelter=XYZ` that return clean JSON.
+
+### Image mixing on detail pages
+When detail pages include navigation/sidebar links to other pets with thumbnail images, the image extractor picks up those unrelated images. The name-based alt-text filtering helps but doesn't catch all cases (some sites don't set alt text).
+
+**Recommended approach**: Use the gallery-first extraction strategy (already implemented for Shelterluv/APA). Each site needs a gallery selector configured. For unknown sites, prefer images that appear near the pet name/heading over images in the page footer/sidebar.
+
+### Single-text-block field parsing
+Petango outputs all pet data in a single `<strong>` block: `"Lab Mix Sex: Female Age: 1 Year Color: Cream"`. Standard labeled-field extraction can't separate these without knowing the field order.
+
+**Recommended approach**: Add a Petango-specific structured parser that splits on known field labels: `Name:`, `Sex:`, `Age:`, `Color:`, `Weight:`, `Breed:`.
 
 The scan detail page (`/scan/[id]`) shows:
 - **Pages tab** — all crawled pages with type, depth, HTTP status

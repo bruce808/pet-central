@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { chromium, Browser, BrowserContext, Page } from 'playwright';
+import { chromium, Browser, BrowserContext, Page, Response } from 'playwright';
 import * as crypto from 'crypto';
 import type { FetchResult } from './page-fetcher.service';
 
@@ -7,7 +7,34 @@ export interface BrowserFetchOptions {
   waitForSelector?: string;
   waitMs?: number;
   blockResources?: string[];
+  interceptApis?: boolean;
 }
+
+export interface InterceptedApiData {
+  url: string;
+  data: unknown;
+}
+
+export interface BrowserFetchResult extends FetchResult {
+  interceptedApis: InterceptedApiData[];
+}
+
+const API_PATTERNS = [
+  /\/api\//i,
+  /\/v\d+\//i,
+  /shelterluv\.com/i,
+  /adopets\.com/i,
+  /petango\.com/i,
+  /petfinder\.com/i,
+  /24petconnect\.com/i,
+  /rescuegroups\.org/i,
+  /\/graphql/i,
+  /\/animals/i,
+  /\/pets/i,
+  /\/adoptable/i,
+  /\/search/i,
+  /\/listings/i,
+];
 
 @Injectable()
 export class BrowserFetcherService implements OnModuleDestroy {
@@ -16,7 +43,6 @@ export class BrowserFetcherService implements OnModuleDestroy {
   private context: BrowserContext | null = null;
   private page: Page | null = null;
   private launchPromise: Promise<void> | null = null;
-  private routesConfigured = false;
   private currentBlockedTypes = new Set<string>();
 
   async onModuleDestroy() {
@@ -62,8 +88,7 @@ export class BrowserFetcherService implements OnModuleDestroy {
         return route.continue();
       });
 
-      this.routesConfigured = true;
-      this.logger.log('Headless browser ready (single-page session)');
+      this.logger.log('Headless browser ready (single-page session with API interception)');
     })();
 
     await this.launchPromise;
@@ -77,41 +102,73 @@ export class BrowserFetcherService implements OnModuleDestroy {
     this.context = null;
     if (this.browser) await this.browser.close().catch(() => {});
     this.browser = null;
-    this.routesConfigured = false;
   }
 
-  async fetchPage(url: string, options?: BrowserFetchOptions): Promise<FetchResult | null> {
+  async fetchPage(url: string, options?: BrowserFetchOptions): Promise<BrowserFetchResult | null> {
     const fetchStartedAt = new Date();
+    const interceptedApis: InterceptedApiData[] = [];
 
     try {
       await this.ensureBrowser(options?.blockResources);
       if (!this.page || this.page.isClosed()) return null;
+
+      const responseHandler = async (resp: Response) => {
+        try {
+          const respUrl = resp.url();
+          const contentType = resp.headers()['content-type'] ?? '';
+          if (!contentType.includes('json') && !contentType.includes('graphql')) return;
+          if (resp.status() >= 400) return;
+
+          const bodyText = await resp.text().catch(() => '');
+          if (bodyText.length < 100 || bodyText.length > 5_000_000) return;
+
+          let body: unknown;
+          try { body = JSON.parse(bodyText); } catch { return; }
+
+          const isApiResponse = API_PATTERNS.some(p => p.test(respUrl));
+          const hasAnimalData = this.looksLikeAnimalData(body);
+
+          if (isApiResponse || hasAnimalData) {
+            if (hasAnimalData) {
+              this.logger.log(`Intercepted API with animal data: ${respUrl.substring(0, 120)} (${bodyText.length} bytes)`);
+              interceptedApis.push({ url: respUrl, data: body });
+            }
+          }
+        } catch {}
+      };
+
+      this.page.on('response', responseHandler);
 
       const response = await this.page.goto(url, {
         waitUntil: 'domcontentloaded',
         timeout: 15_000,
       });
 
-      if (!response) return null;
+      if (!response) {
+        this.page.off('response', responseHandler);
+        return null;
+      }
 
       const httpStatus = response.status();
       if (httpStatus >= 400) {
         this.logger.debug(`Browser: HTTP ${httpStatus} for ${url}`);
+        this.page.off('response', responseHandler);
         return null;
       }
 
       if (options?.waitForSelector) {
         await this.page.waitForSelector(options.waitForSelector, { timeout: 8_000 }).catch(() => {});
-      } else if (options?.waitMs) {
-        await this.page.waitForTimeout(options.waitMs);
-      } else {
-        await this.page.waitForTimeout(1000);
       }
+
+      const waitTime = options?.waitMs ?? (interceptedApis.length > 0 ? 1000 : 3000);
+      await this.page.waitForTimeout(waitTime);
+
+      this.page.off('response', responseHandler);
 
       const html = await this.page.content();
       const fetchCompletedAt = new Date();
 
-      if (html.length < 200) return null;
+      if (html.length < 200 && interceptedApis.length === 0) return null;
 
       const checksum = crypto.createHash('sha256').update(html).digest('hex');
       const title = await this.page.title().catch(() => null);
@@ -124,6 +181,10 @@ export class BrowserFetcherService implements OnModuleDestroy {
         (el) => el.getAttribute('href'),
       ).catch(() => null);
 
+      if (interceptedApis.length > 0) {
+        this.logger.log(`Captured ${interceptedApis.length} API response(s) from ${url}`);
+      }
+
       return {
         html,
         canonicalUrl,
@@ -135,12 +196,47 @@ export class BrowserFetcherService implements OnModuleDestroy {
         rawStoragePath: null,
         title,
         metaDescription,
+        interceptedApis,
       };
     } catch (error: any) {
       this.logger.warn(`Browser fetch failed for ${url}: ${error.message}`);
       if (this.page?.isClosed()) this.page = null;
       return null;
     }
+  }
+
+  private looksLikeAnimalData(data: unknown): boolean {
+    if (!data) return false;
+    const str = JSON.stringify(data).toLowerCase();
+    if (str.length < 50) return false;
+
+    const signals = ['"name"', '"breed"', '"species"', '"animal"', '"pet"', '"sex"', '"gender"', '"age"', '"photo"', '"image"'];
+    const matchCount = signals.filter(s => str.includes(s)).length;
+    if (matchCount >= 3) return true;
+
+    if (Array.isArray(data) && data.length >= 2) {
+      const first = data[0];
+      if (typeof first === 'object' && first !== null) {
+        const keys = Object.keys(first).map(k => k.toLowerCase());
+        const animalKeys = keys.filter(k => /name|breed|species|animal|pet|sex|gender|age|photo|image|color|weight|description|bio/.test(k));
+        if (animalKeys.length >= 2) return true;
+      }
+    }
+
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      for (const val of Object.values(data)) {
+        if (Array.isArray(val) && val.length >= 2) {
+          const first = val[0];
+          if (typeof first === 'object' && first !== null) {
+            const keys = Object.keys(first).map(k => k.toLowerCase());
+            const animalKeys = keys.filter(k => /name|breed|species|animal|pet|sex|gender|age|photo|image/.test(k));
+            if (animalKeys.length >= 2) return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   private setsEqual(a: Set<string>, b: Set<string>): boolean {

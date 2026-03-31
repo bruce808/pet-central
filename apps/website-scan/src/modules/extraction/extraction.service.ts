@@ -163,7 +163,7 @@ export class ExtractionService {
         jsonPayload: {
           logoUrl: org.logoUrl,
           imageUrls: org.imageUrls,
-          addressRaw: org.addressRaw,
+          addressRaw: org.addressRaw ?? (org.city && org.state ? `${org.city}, ${org.state}${org.postalCode ? ' ' + org.postalCode : ''}` : undefined),
           city: org.city,
           state: org.state,
           postalCode: org.postalCode,
@@ -231,6 +231,15 @@ export class ExtractionService {
     return [];
   }
 
+  async persistAnimalListingPublic(
+    scanId: string,
+    sourceScanPageId: string | null,
+    detailScanPageId: string | null,
+    candidate: any,
+  ) {
+    return this.persistAnimalListing(scanId, sourceScanPageId, detailScanPageId, candidate);
+  }
+
   private async persistAnimalListing(
     scanId: string,
     sourceScanPageId: string | null,
@@ -265,8 +274,8 @@ export class ExtractionService {
         vaccinated: candidate.vaccinated,
         declawed: candidate.declawed,
         description: candidate.description,
-        locationCity: candidate.locationCity,
-        locationState: candidate.locationState,
+        locationCity: undefined,
+        locationState: undefined,
         organizationName: candidate.organizationName,
         organizationReference: candidate.organizationReference,
         photoUrlsJson: candidate.photoUrls ?? [],

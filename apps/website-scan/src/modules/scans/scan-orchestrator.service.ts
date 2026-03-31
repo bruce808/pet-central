@@ -124,13 +124,17 @@ export class ScanOrchestratorService {
 
         try {
           let fetchResult: FetchResult | null;
+          let interceptedApis: { url: string; data: unknown }[] = [];
           const isAdoptionPage = useJs && this.isAdoptionRelatedUrl(normalizedUrl);
           if (isAdoptionPage) {
-            fetchResult = await this.browserFetcher.fetchPage(normalizedUrl, {
+            const browserResult = await this.browserFetcher.fetchPage(normalizedUrl, {
               waitForSelector: renderingConfig?.waitForSelector,
               waitMs: renderingConfig?.waitMs,
               blockResources: renderingConfig?.blockResources,
+              interceptApis: true,
             });
+            fetchResult = browserResult;
+            interceptedApis = browserResult?.interceptedApis ?? [];
           } else {
             fetchResult = await this.pageFetcher.fetchPage(normalizedUrl);
           }
@@ -146,6 +150,8 @@ export class ScanOrchestratorService {
                 useJs = true;
                 renderingConfig = detected.config.rendering;
                 this.animalExtractor.setConfig(detected.config as any);
+                visited.delete(baseUrl);
+                frontier.unshift({ url: baseUrl, depth: 0, priority: PRIORITY_DETAIL, discoveredFromUrl: normalizedUrl });
               }
               if (website) {
                 await this.prisma.crawlWebsite.update({
@@ -174,6 +180,13 @@ export class ScanOrchestratorService {
           const adopetsUrl = this.techDetector.extractAdopetsIframeUrl(fetchResult.html);
           if (adopetsUrl && !visited.has(adopetsUrl)) {
             this.logger.log(`Found Adopets iframe: ${adopetsUrl}`);
+            if (!useJs) {
+              useJs = true;
+              renderingConfig = { requiresJs: true, waitMs: 5000 };
+              this.logger.log('Enabling Playwright for Adopets iframe');
+              visited.delete(baseUrl);
+              frontier.unshift({ url: baseUrl, depth: 0, priority: PRIORITY_DETAIL, discoveredFromUrl: normalizedUrl });
+            }
             frontier.unshift({ url: adopetsUrl, depth: 0, priority: PRIORITY_DETAIL, discoveredFromUrl: normalizedUrl });
           }
 
@@ -264,6 +277,19 @@ export class ScanOrchestratorService {
             normalizedUrl,
           );
 
+          if (interceptedApis.length > 0) {
+            const apiAnimals = this.animalExtractor.extractFromApiData(
+              interceptedApis.map(a => a.data),
+              normalizedUrl,
+            );
+            const allowedTypes = ['SCAN_DOG', 'SCAN_CAT', 'SCAN_BIRD'];
+            for (const candidate of apiAnimals) {
+              if (candidate.confidence > 0.70 && (!candidate.animalType || allowedTypes.includes(candidate.animalType))) {
+                await this.extractionService.persistAnimalListingPublic(scanId, scanPage.id, null, candidate);
+              }
+            }
+          }
+
           if (pageClassification.isListingPage) {
             const detailUrlsFromCards = new Set<string>();
             for (const candidate of animalCandidates) {
@@ -348,7 +374,12 @@ export class ScanOrchestratorService {
   private isAdoptionRelatedUrl(url: string): boolean {
     const lower = url.toLowerCase();
     if (/adopets\.com|24petconnect\.com|petango\.com|shelterluv\.com/i.test(lower)) return true;
-    return /\/(adopt|adoptable|adoptables|available|pet|animal|dog|cat|bird|kitten|puppy|find-a-pet|meet-our|our-pet)/i.test(lower);
+    if (/\/(adopt|adoptable|adoptables|available|pet|animal|dog|cat|bird|kitten|puppy|find-a-pet|meet-our|our-pet)/i.test(lower)) return true;
+    try {
+      const path = new URL(url).pathname.toLowerCase();
+      if (path === '/' || path === '' || /^\/(about|contact|info|locations?)(\/|$)/.test(path)) return true;
+    } catch {}
+    return false;
   }
 
   private normalizeUrl(url: string, baseUrl: string): string | null {

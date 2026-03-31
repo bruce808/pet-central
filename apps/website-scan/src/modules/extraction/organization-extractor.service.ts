@@ -71,20 +71,38 @@ export class OrganizationExtractorService {
 
     const reviewData = this.extractReviews(html);
 
-    return {
-      name,
-      canonicalWebsite: origin || undefined,
-      category: this.inferCategory(html) ?? undefined,
-      organizationType: this.inferOrgType(html) ?? undefined,
-      petTypes: this.inferPetTypes(html),
-      summaryDescription: this.extractDescription(html, markdown) ?? undefined,
-      missionStatement: this.extractMissionStatement(html, markdown) ?? undefined,
-      logoUrl: this.extractLogo(html, url),
-      imageUrls: this.extractOrgImages(html, url),
-      addressRaw: this.extractAddress(html),
-      city: this.extractAddressPart(html, 'city'),
-      state: this.extractAddressPart(html, 'state'),
-      postalCode: this.extractAddressPart(html, 'postalCode'),
+      const addressRaw = this.extractAddress(html);
+      const schemaCity = this.extractAddressPart(html, 'city');
+      const schemaState = this.extractAddressPart(html, 'state');
+      const schemaZip = this.extractAddressPart(html, 'postalCode');
+
+      let city = schemaCity;
+      let state = schemaState;
+      let postalCode = schemaZip;
+
+      if (addressRaw && (!city || !state)) {
+        const parsed = addressRaw.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z]{2})\s+(\d{5})/);
+        if (parsed) {
+          city = city ?? parsed[1]!.trim();
+          state = state ?? parsed[2]!.trim();
+          postalCode = postalCode ?? parsed[3]!.trim();
+        }
+      }
+
+      return {
+        name,
+        canonicalWebsite: origin || undefined,
+        category: this.inferCategory(html) ?? undefined,
+        organizationType: this.inferOrgType(html) ?? undefined,
+        petTypes: this.inferPetTypes(html),
+        summaryDescription: this.extractDescription(html, markdown) ?? undefined,
+        missionStatement: this.extractMissionStatement(html, markdown) ?? undefined,
+        logoUrl: this.extractLogo(html, url),
+        imageUrls: this.extractOrgImages(html, url),
+        addressRaw,
+        city,
+        state,
+        postalCode,
       accreditations: this.extractAccreditations(html),
       socialLinks: this.extractSocialLinks(html),
       confidence: 0.7,
@@ -250,8 +268,12 @@ export class OrganizationExtractorService {
     if (looseAddr) return looseAddr[1]!.trim();
 
     const cityStateZip = text.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)/);
-    if (cityStateZip && !/Select|Choose|Enter/.test(cityStateZip[1]!)) {
+    if (cityStateZip && !/Select|Choose|Enter|Welcome|Home|About|Contact/.test(cityStateZip[0]!.split(',')[0]!.split(' ')[0]!)) {
       return cityStateZip[1]!.trim();
+    }
+    if (cityStateZip) {
+      const cleaned = cityStateZip[1]!.replace(/^(?:Welcome|Home|About|Contact|Visit)\s+/i, '').trim();
+      if (/[A-Z][a-z]+,\s*[A-Z]{2}\s+\d{5}/.test(cleaned)) return cleaned;
     }
 
     return undefined;

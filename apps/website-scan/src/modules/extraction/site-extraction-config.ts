@@ -19,6 +19,20 @@ export interface SiteExtractionConfig {
     sexFromMarkdownPattern?: string;
     ageFromMarkdownPattern?: string;
   };
+  apiFieldMapping?: {
+    name?: string[];
+    breed?: string[];
+    sex?: string[];
+    age?: string[];
+    species?: string[];
+    description?: string[];
+    externalId?: string[];
+    weight?: string[];
+    color?: string[];
+    size?: string[];
+    photo?: string[];
+    nestedKeys?: string[];
+  };
   gallery?: {
     imageSelector?: string;
     imageSrcAttribute?: string;
@@ -128,6 +142,7 @@ export function mergeConfigs(base: SiteExtractionConfig, override?: SiteExtracti
   return {
     rendering: override.rendering ?? base.rendering,
     fields: override.fields ? { ...base.fields, ...override.fields } : base.fields,
+    apiFieldMapping: override.apiFieldMapping ?? base.apiFieldMapping,
     gallery: { ...base.gallery, ...override.gallery },
     cards: {
       selectors: override.cards?.selectors ?? base.cards?.selectors,

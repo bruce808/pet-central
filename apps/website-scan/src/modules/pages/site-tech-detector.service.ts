@@ -50,9 +50,20 @@ const PLATFORM_SIGNATURES: {
       { type: 'iframe', regex: /adopets\.com/i, extractUrl: true },
     ],
     config: {
-      rendering: { requiresJs: true, waitForSelector: '.pet-card,.animal-card,.card,.adopets-results,.MuiGrid-item,.MuiCard-root', waitMs: 5000, blockResources: ['font'] },
-      fields: {
-        nameFromMarkdownPattern: '#{1,4}\\s+([A-Z][a-zA-Z]+(?:\\s+[A-Z][a-zA-Z]+)?)',
+      rendering: { requiresJs: true, waitForSelector: 'img[src*="adopets"],img[src*="cloudfront"],.card,a[href*="pet"]', waitMs: 6000, blockResources: ['font'] },
+      apiFieldMapping: {
+        name: ['name'],
+        breed: ['breed_primary_name'],
+        sex: ['sex_key'],
+        age: ['age_key'],
+        species: ['species_key'],
+        description: ['description'],
+        externalId: ['code'],
+        weight: ['weight_number'],
+        color: ['color_key'],
+        size: ['size_key'],
+        photo: ['picture', 'avatar', 'picture_url'],
+        nestedKeys: ['_formatted', 'pet', 'attributes'],
       },
     },
   },
